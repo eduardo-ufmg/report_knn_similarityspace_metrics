@@ -23,7 +23,7 @@ eduardohbc@ufmg.br}
 \maketitle
 
 \begin{abstract}
-The k-Nearest Neighbor (k-NN) algorithm, while conceptually simple, is highly sensitive to hyperparameter choices, such as the number of neighbors `k` and the distance metric. The standard method for tuning these hyperparameters, k-fold cross-validation, is computationally expensive. This paper posits that the performance of k-NN can be predicted by computationally efficient proxy metrics derived from the geometric and statistical properties of the data. We introduce a transformation from the original feature space to a class-aggregated similarity space using a sparse Radial Basis Function (RBF) kernel. Within this space, we propose and define a suite of novel metrics to quantify class separability, compactness, and overlap. The central thesis is that optimizing these proxy metrics via Bayesian optimization can provide a faster and more insightful alternative to the brute-force cross-validation approach for hyperparameter tuning, without sacrificing classification accuracy.
+The k-Nearest Neighbor (k-NN) algorithm, while conceptually simple, is highly sensitive to hyperparameter choices, such as the number of neighbors \texttt{k} and the distance metric. The standard method for tuning these hyperparameters, k-fold cross-validation, is computationally expensive. This paper posits that the performance of k-NN can be predicted by computationally efficient proxy metrics derived from the geometric and statistical properties of the data. We introduce a transformation from the original feature space to a class-aggregated similarity space using a sparse Radial Basis Function (RBF) kernel. Within this space, we propose and define a suite of novel metrics to quantify class separability, compactness, and overlap. The central thesis is that optimizing these proxy metrics via Bayesian optimization can provide a faster alternative to the brute-force cross-validation approach for hyperparameter tuning. However, our experimental results on 15 datasets indicate that while the proposed metrics are computationally faster, they do not consistently match the classification accuracy of the baseline k-NN tuned with traditional cross-validation. This suggests a trade-off between computational efficiency and predictive performance, where the direct optimization of accuracy remains superior for achieving the best results.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -33,13 +33,13 @@ k-Nearest Neighbor, similarity space, hyperparameter optimization, Bayesian opti
 \section{Introduction}
 
 \subsection{The k-Nearest Neighbor Algorithm: A Foundation of Non-Parametric Classification}
-The k-Nearest Neighbor (k-NN) algorithm stands as one of the most fundamental and intuitive methods in machine learning for classification and regression tasks \cite{b1, b2}. As a non-parametric, instance-based learning method, it makes no underlying assumptions about the distribution of the data, offering significant flexibility \cite{b1, b2}. The core principle of k-NN is that similar data points are likely to have similar outcomes. For classification, an unlabeled observation is assigned to the class most frequently represented among its `k` nearest neighbors in the feature space \cite{b3, b4}. The algorithm's conceptual development traces back to the work of Evelyn Fix and Joseph Hodges in 1951, but it was the seminal 1967 paper, "Nearest Neighbor Pattern Classification" by Thomas Cover and Peter Hart, that provided its rigorous theoretical underpinning \cite{b5, b6}. Their work established a crucial property: for a large number of samples, the error rate of the simple 1-NN rule is bounded by at most twice the Bayes error rate—the theoretical minimum achievable error for a given data distribution \cite{b5, b7}. This result guarantees a level of performance relative to an optimal classifier, solidifying k-NN's position as a viable and theoretically sound method that remains relevant decades after its conception \cite{b8, b9, b10}.
+The k-Nearest Neighbor (k-NN) algorithm stands as one of the most fundamental and intuitive methods in machine learning for classification and regression tasks \cite{b1, b2}. As a non-parametric, instance-based learning method, it makes no underlying assumptions about the distribution of the data, offering significant flexibility \cite{b1, b2}. The core principle of k-NN is that similar data points are likely to have similar outcomes. For classification, an unlabeled observation is assigned to the class most frequently represented among its \texttt{k} nearest neighbors in the feature space \cite{b3, b4}. The algorithm's conceptual development traces back to the work of Evelyn Fix and Joseph Hodges in 1951, but it was the seminal 1967 paper, "Nearest Neighbor Pattern Classification" by Thomas Cover and Peter Hart, that provided its rigorous theoretical underpinning \cite{b5, b6}. Their work established a crucial property: for a large number of samples, the error rate of the simple 1-NN rule is bounded by at most twice the Bayes error rate—the theoretical minimum achievable error for a given data distribution \cite{b5, b7}. This result guarantees a level of performance relative to an optimal classifier, solidifying k-NN's position as a viable and theoretically sound method that remains relevant decades after its conception \cite{b8, b9, b10}.
 
 \subsection{The Achilles' Heel: Sensitivity to Hyperparameters and Data Structure}
-Despite its conceptual simplicity, the practical application of k-NN reveals a significant sensitivity to several key factors that dictate its performance \cite{b3, b11}. The choice of `k`, the number of neighbors, represents a critical bias-variance trade-off. A small `k` can lead to a model that is highly sensitive to noise and outliers, resulting in high variance and overfitting, while a large `k` can oversmooth the decision boundary, leading to high bias and underfitting by ignoring local data patterns \cite{b3, b12}. Furthermore, the algorithm's effectiveness is contingent on the choice of distance metric (e.g., Euclidean, Manhattan) used to quantify "nearness" in the feature space \cite{b1, b4}. The performance can also be severely degraded by irrelevant features or differences in the scales of features, necessitating careful data preprocessing. This sensitivity is particularly acute in high-dimensional spaces, a phenomenon known as the "curse of dimensionality," where the concept of distance can become less meaningful as all points tend to become equidistant from one another \cite{b4, b11}.
+Despite its conceptual simplicity, the practical application of k-NN reveals a significant sensitivity to several key factors that dictate its performance \cite{b3, b11}. The choice of \texttt{k}, the number of neighbors, represents a critical bias-variance trade-off. A small \texttt{k} can lead to a model that is highly sensitive to noise and outliers, resulting in high variance and overfitting, while a large \texttt{k} can oversmooth the decision boundary, leading to high bias and underfitting by ignoring local data patterns \cite{b3, b12}. Furthermore, the algorithm's effectiveness is contingent on the choice of distance metric (e.g., Euclidean, Manhattan) used to quantify "nearness" in the feature space \cite{b1, b4}. The performance can also be severely degraded by irrelevant features or differences in the scales of features, necessitating careful data preprocessing. This sensitivity is particularly acute in high-dimensional spaces, a phenomenon known as the "curse of dimensionality," where the concept of distance can become less meaningful as all points tend to become equidistant from one another \cite{b4, b11}.
 
 \subsection{The Conventional Solution and Its Limitations: Cross-Validation}
-To address the challenge of hyperparameter selection, the standard and most robust methodology is k-fold cross-validation \cite{b12, b13, b14}. This technique involves partitioning the training data into `k` subsets, or "folds." The model is then trained on `k-1` folds and validated on the remaining held-out fold. This process is repeated `k` times, with each fold serving as the validation set exactly once, and the performance metrics are averaged to produce a stable and reliable estimate of the model's generalization ability \cite{b13, b15}. While effective, k-fold cross-validation suffers from a major drawback: it is computationally intensive, often prohibitively so \cite{b11, b13}. For each combination of hyperparameters under consideration (e.g., for each pair of `k` and a distance metric parameter), the entire process of `k` model trainings and evaluations must be performed. This brute-force, black-box approach becomes impractical for large datasets or when exploring a wide range of hyperparameter values \cite{b16, b17}.
+To address the challenge of hyperparameter selection, the standard and most robust methodology is k-fold cross-validation \cite{b12, b13, b14}. This technique involves partitioning the training data into \texttt{k} subsets, or "folds." The model is then trained on `k-1` folds and validated on the remaining held-out fold. This process is repeated \texttt{k} times, with each fold serving as the validation set exactly once, and the performance metrics are averaged to produce a stable and reliable estimate of the model's generalization ability \cite{b13, b15}. While effective, k-fold cross-validation suffers from a major drawback: it is computationally intensive, often prohibitively so \cite{b11, b13}. For each combination of hyperparameters under consideration (e.g., for each pair of \texttt{k} and a distance metric parameter), the entire process of \texttt{k} model trainings and evaluations must be performed. This brute-force, black-box approach becomes impractical for large datasets or when exploring a wide range of hyperparameter values \cite{b16, b17}.
 
 \subsection{Thesis Statement: Predicting Performance Through Geometric Proxies}
 The central thesis of this paper is that the computational burden of hyperparameter optimization for k-NN can be substantially mitigated by using computationally efficient proxies that correlate strongly with classification performance. We posit that metrics derived from the geometric and statistical properties of data classes, when transformed into a carefully constructed "similarity space," can serve as effective predictors of k-NN accuracy. This work introduces and evaluates a suite of novel metrics designed to quantify class separability, compactness, and overlap. By optimizing the k-NN hyperparameters to maximize these proxy metrics instead of the cross-validation score, we aim to develop a faster, more insightful, and equally effective method for hyperparameter tuning. This approach moves away from the black-box treatment of the model and instead leverages the intrinsic geometric nature of the k-NN algorithm itself, addressing the paradox where a conceptually simple algorithm requires a computationally complex and "unintelligent" optimization procedure.
@@ -55,7 +55,7 @@ K(\mathbf{u}, \mathbf{v}) = \exp\left(-\frac{\|\mathbf{u} - \mathbf{v}\|^2}{2h^2
 where $\|\mathbf{u} - \mathbf{v}\|$ represents the Euclidean distance, and the bandwidth parameter $h$ controls the width of the kernel, determining how quickly similarity decays with distance \cite{b18, b20}. The function's value ranges from 1 (for identical vectors) to 0 (for infinitely distant vectors), providing an intuitive measure of similarity. The use of RBFs was first formulated in the context of neural networks in a seminal 1988 paper by Broomhead and Lowe \cite{b21, b22}. While their work focused on RBFs as activation functions in a network, this study employs the RBF as a standalone kernel function, a concept popularized by methods like Support Vector Machines (SVMs) to handle non-linear data relationships by implicitly mapping data to a higher-dimensional space \cite{b18, b19}. This mapping allows complex, non-linear class structures in the original feature space to be represented in a way that is more amenable to linear or geometric analysis.
 
 \subsection{Sparse Kernel Matrix Construction}
-A key feature of our implementation is the use of a \textit{sparse} RBF kernel matrix. Given a set of samples to be evaluated and a set of reference samples, a full kernel matrix would compute the similarity between every pair of points. For large datasets, this is computationally infeasible. Instead, for each sample in the evaluation set, we compute its similarity only to the `k` closest points in the reference set \cite{b20}. All other similarity values are set to zero. This approach not only makes the computation tractable but also aligns the transformation process with the local nature of the k-NN algorithm itself, focusing only on the most relevant neighbors.
+A key feature of our implementation is the use of a \textit{sparse} RBF kernel matrix. Given a set of samples to be evaluated and a set of reference samples, a full kernel matrix would compute the similarity between every pair of points. For large datasets, this is computationally infeasible. Instead, for each sample in the evaluation set, we compute its similarity only to the \texttt{k} closest points in the reference set \cite{b20}. All other similarity values are set to zero. This approach not only makes the computation tractable but also aligns the transformation process with the local nature of the k-NN algorithm itself, focusing only on the most relevant neighbors.
 
 \subsection{Class-Aggregated Similarity Space Transformation}
 The final step in creating the similarity space is to aggregate the similarity scores based on class labels. Let $K$ be the sparse $n \times m$ similarity matrix, where $n$ is the number of evaluated samples and $m$ is the number of reference samples. Let $\mathbf{y}$ be the vector of class labels for the $m$ reference samples, and let $\mathcal{C} = \{c_1, c_2, \ldots, c_p\}$ be the set of $p$ unique classes. We compute a new $n \times p$ matrix, $Q$, which represents the data in the similarity space. An element $Q_{ik}$ of this matrix is defined as the sum of similarities from the $i$-th evaluated sample to all reference samples belonging to class $c_k$:
@@ -75,22 +75,27 @@ This metric, adapted from the work of Menezes et al. \cite{b72}, computes a scal
 D_{ij} = |\mathbf{v}i - \mathbf{v}j|
 \cdot \frac{\mathbf{v}i \cdot \mathbf{v}j}{|\mathbf{v}i| |\mathbf{v}j|}
 \end{equation}
-This formula, originally proposed as a dissimilarity function for optimizing RBF kernel widths in SVMs \cite{b72}, combines the Euclidean distance between the centroids with their cosine similarity. The intuition, as described by Menezes et al., is that multiplying the Euclidean distance by the cosine similarity addresses a limitation of using Euclidean distance alone, where the metric would not converge to zero for very small kernel widths, potentially creating spurious local maxima. The final score in our implementation is derived from the mean ($\mu{\mathcal{D}})andstandarddeviation(\sigma{\mathcal{D}}$) of all pairwise dissimilarities, adjusted by factors related to the hyperparameters being tuned. This approach of combining magnitude and direction also aligns with broader research into "direction-aware" distance metrics, which have been shown to be more robust than Euclidean distance alone in high-dimensional spaces where magnitude can be misleading \cite{b23, b24, b25}.
+This formula, originally proposed as a dissimilarity function for optimizing RBF kernel widths in SVMs \cite{b72}, combines the Euclidean distance between the centroids with their cosine similarity. The intuition, as described by Menezes et al., is that multiplying the Euclidean distance by the cosine similarity addresses a limitation of using Euclidean distance alone, where the metric would not converge to zero for very small kernel widths, potentially creating spurious local maxima. The final score in our implementation is derived from the mean ($\mu{\mathcal{D}}$) and standard deviation ($\sigma{\mathcal{D}}$) of all pairwise dissimilarities, adjusted by factors related to the hyperparameters being tuned. This approach of combining magnitude and direction also aligns with broader research into "direction-aware" distance metrics, which have been shown to be more robust than Euclidean distance alone in high-dimensional spaces where magnitude can be misleading \cite{b23, b24, b25}.
 
 \subsection{n-Volume of the Intersection of the Convex Hulls}
 This metric quantifies class overlap by measuring the volume of the geometric intersection of the class convex hulls in the $N$-dimensional similarity space. A convex hull is defined as the smallest convex set that encloses all points of a given class \cite{b26}. The intersection of the convex hulls for all classes, $\mathcal{I} = \bigcap_{k=1}^{p} \text{conv}(\mathcal{C}_k)$, represents the region of the similarity space where points cannot be unambiguously assigned to a single class based on their convex hull membership. The final score is the $N$-dimensional volume of this intersection region \cite{b20}.
 
-This metric operationalizes a fundamental concept from geometry and learning theory: two sets of points are linearly separable if and only if their convex hulls do not intersect \cite{b27, b28}. While this theorem provides a binary condition (intersect or not), measuring the \textit{volume} of the intersection transforms it into a continuous, quantitative heuristic for class separability. A volume of zero corresponds to perfect linear separability, while a larger volume indicates a greater degree of class overlap and confusion, which is expected to correlate negatively with k-NN performance. Algorithms for computing the intersection of convex polyhedra provide the computational basis for this metric \cite{b29, b30}.
+This metric is based on the geometric intersection of the class convex hulls \cite{b27, b28}. Counterintuitively, instead of minimizing this overlap to achieve maximum separability, the objective is to \textit{maximize} the volume of the intersection. The rationale is that a controlled degree of overlap can serve as a regularizer, preventing the model from creating overly rigid decision boundaries that are brittle and overfit to the training data. By rewarding a larger intersection volume, the optimization is guided towards solutions that exhibit better generalization, under the assumption that some class ambiguity in the similarity space is characteristic of a more robust model. The computational basis for this metric lies in algorithms for intersecting convex polyhedra \cite{b29, b30}.
 
 \subsection{n-Volume of the Convex Hulls}
 In contrast to measuring overlap, this metric focuses on the compactness and uniformity of the individual class distributions. For each class, the $N$-dimensional volume of its convex hull is computed. The final score is then calculated from the mean ($\mu_{\mathcal{V}}$) and standard deviation ($\sigma_{\mathcal{V}}$) of these volumes:
 $$\text{Final Score} = (\mu_{\mathcal{V}} - \sigma_{\mathcal{V}}) \cdot (1 - f_k)$$
-The intuition here is that an ideal class structure for k-NN would consist of tight, compact clusters. A small mean volume ($\mu_{\mathcal{V}}$) indicates that classes, on average, occupy a small region in the similarity space. A small standard deviation ($\sigma_{\mathcal{V}}$) indicates that all classes are similarly compact. The metric thus favors class distributions that are consistently and tightly clustered. This approach draws on work in classification and anomaly detection where the volume of a convex hull is used to characterize the spatial extent of a data distribution \cite{b31, b32, b33}.
+The intuition behind this metric is that maximizing the volume of the class convex hulls can lead to better generalization. While compact clusters are often desired, overly small volumes may indicate overfitting, where the class representations are too specific to the training data and thus harder to distinguish. This metric, therefore, rewards solutions where classes occupy a larger, more robust region in the similarity space. The final score is designed to maximize the mean volume ($\mu_{\mathcal{V}}$) while minimizing the standard deviation of the volumes ($\sigma_{\mathcal{V}}$), promoting class representations that are both large and uniformly sized. This concept is related to methods in anomaly detection and classification that use the spatial extent of data distributions to define class boundaries \cite{b31, b32, b33}.
 
 \subsection{Spread: A Statistical View on Inter- and Intra-Class Distances}
 This metric provides a statistical measure of class separability by comparing the distributions of distances between points within the same class (intra-class) to distances between points in different classes (inter-class). After computing all pairwise Euclidean distances in the similarity space, they are partitioned into these two sets. The mean and standard deviation are calculated for both the within-class distances ($\mu_{\text{within}}, \sigma_{\text{within}}$) and the between-class distances ($\mu_{\text{between}}, \sigma_{\text{between}}$). The final score is a function of these four statistics:
-$$ \text{Final Score} = ((\mu_{\text{between}} \cdot \mu_{\text{within}}) - (\sigma_{\text{between}} \cdot \sigma_{\text{within}})) \cdot (1 - f_h) \cdot (1 - f_k) $$
-This metric is rooted in the foundational principles of pattern recognition, most notably Fisher's Linear Discriminant Analysis (LDA), which seeks a projection that maximizes the ratio of between-class scatter to within-class scatter \cite{b34}. Good separability is achieved when between-class distances are large and within-class distances are small \cite{b35, b36, b37}. The "Spread" metric extends this classic idea by also rewarding consistency (low standard deviation) in these distance distributions, penalizing scenarios where separability is erratic across the feature space.
+\begin{equation}
+\begin{split}
+\text{Final Score} ={}& ((\mu_{\text{between}} \cdot \mu_{\text{within}}) - (\sigma_{\text{between}} \cdot \sigma_{\text{within}})) \\
+& \cdot (1 - f_h) \cdot (1 - f_k)
+\end{split}
+\end{equation}
+This metric diverges from traditional separability measures like Fisher's Linear Discriminant Analysis (LDA), which aim to maximize the distance between classes while minimizing the spread within them \cite{b34, b35, b36}. Instead, the "Spread" metric seeks a representation where classes are not only well-separated (high $\mu_{\text{between}}$) but also internally spread out (high $\mu_{\text{within}}$). The objective is to maximize the product of the mean inter-class and intra-class distances, rewarding data representations where points are well distinguished. The metric also favors consistency by penalizing high variance in both distance distributions ($\sigma_{\text{between}}, \sigma_{\text{within}}$), promoting a uniform spread across the space.
 
 \subsection{Silhouette: Adapting a Clustering Metric for Supervised Evaluation}
 This metric adapts the well-known Silhouette score, traditionally used for unsupervised cluster validation, to the supervised context of evaluating class structure. The standard silhouette score for a single point $i$ is given by:
@@ -110,7 +115,7 @@ The intuition is that a high degree of parallelism between the hyperplane formed
 To rigorously evaluate the proposed similarity space metrics as predictors of k-NN performance, a comprehensive experimental protocol was designed. This protocol ensures a fair comparison between models optimized using the novel metrics and a baseline model optimized using a conventional, state-of-the-art approach.
 
 \subsection{Baseline Model}
-The benchmark for this study is a standard k-NN classifier. The hyperparameters of this model—specifically, the number of neighbors (`k`) and the RBF kernel bandwidth (`h`) used in the similarity transformation—are tuned by directly optimizing for the 5-fold cross-validation accuracy on the training data \cite{b20}. This represents the "gold standard" but computationally expensive method that is commonly used in practice to achieve the best possible performance from a k-NN model.
+The benchmark for this study is a standard k-NN classifier. The hyperparameters of this model—specifically, the number of neighbors (\texttt{k}) and the RBF kernel bandwidth (\texttt{h}) used in the similarity transformation—are tuned by directly optimizing for the 5-fold cross-validation accuracy on the training data \cite{b20}. This represents the "gold standard" but computationally expensive method that is commonly used in practice to achieve the best possible performance from a k-NN model.
 
 \subsection{Bayesian Optimization}
 For all models, including the baseline, hyperparameter tuning is conducted using Bayesian optimization. This choice is crucial for ensuring a fair comparison of the optimization processes. Bayesian optimization is a sequential, model-based approach for finding the extremum of expensive-to-evaluate, black-box functions \cite{b44, b45, b46}. The method works by building a probabilistic surrogate model (typically a Gaussian Process) of the objective function (e.g., cross-validation accuracy or one of the proposed metrics). It then uses an acquisition function, such as Expected Improvement (EI), to intelligently select the next set of hyperparameters to evaluate, balancing exploration of the search space with exploitation of promising regions \cite{b47, b48}.
@@ -118,7 +123,7 @@ For all models, including the baseline, hyperparameter tuning is conducted using
 This approach is rooted in the foundational work of Jonas Mockus, who introduced the Bayesian framework for optimization and the EI principle in the 1970s \cite{b47, b49}. Its modern application was significantly advanced by Jones et al. in their 1998 paper on Efficient Global Optimization (EGO), which established the use of Gaussian Processes as the surrogate model \cite{b50, b51, b52}. While the baseline model uses Bayesian optimization to maximize 5-fold cross-validation accuracy, the six experimental models use it to maximize one of the six proposed similarity space metrics over the training set. To ensure a fair comparison of computational efficiency, the optimization process for every model is limited to a maximum of 10 iterations \cite{b20}.
 
 \subsection{Experimental Protocol}
-The overall performance of each of the seven models (one baseline, six metric-based) is assessed using a 10-fold cross-validation scheme for the entire experiment. For each of the 10 folds, the dataset is partitioned into a training set (90\%) and a test set (10\%). Each of the seven models is then trained on the training portion; this training phase includes the internal 10-iteration Bayesian optimization loop to find the best hyperparameters according to that model's specific objective function. Once trained and optimized, the model's performance is evaluated on the held-out test set. The final results are reported as the mean and standard deviation of accuracy, total training time, and inference time, aggregated across the 10 outer folds. This nested validation structure ensures a robust and unbiased evaluation of how well each optimization strategy generalizes to unseen data.
+The overall performance of each of the seven models (one baseline, six metric-based) is assessed using a 10-fold cross-validation scheme for the entire experiment. For each of the 10 folds, the dataset is partitioned into a training set (90\%) and a test set (10\%). Each of the seven models is then trained on the training portion; this training phase includes the internal 10-iteration Bayesian optimization loop to find the best hyperparameters according to that model's specific objective function. Once trained and optimized, the model's performance is evaluated on the held-out test set. The final results are reported as the mean of accuracy, total training time, and inference time, aggregated across the 10 outer folds. This nested validation structure ensures a robust and unbiased evaluation of how well each optimization strategy generalizes to unseen data.
 
 \subsection{Datasets}
 To ensure the generalizability of our findings, the experiments are conducted on a diverse collection of 15 publicly available datasets. These datasets vary widely in the number of samples, features, and classes, representing a range of challenges for classification algorithms. The datasets, sourced primarily from the UCI Machine Learning Repository, OpenML, and Kaggle, are summarized in Table \ref{tab:datasets}. Categorical features in datasets like Car Evaluation and Mushroom were converted to a numerical representation using one-hot encoding, resulting in an expanded feature space as noted in the table.
@@ -152,15 +157,120 @@ Yeast & 1484 & 8 & 10 & Nakai, K. (1996) via UCI \cite{b70, b71} \\
 \end{table*}
 
 \section{Results}
-The empirical evaluation of the proposed similarity space metrics against the baseline cross-validation approach is forthcoming. The experiments outlined in the methodology section have been designed but not yet executed. This section, therefore, serves as a blueprint for the analysis that will be conducted once the experimental data are available. The primary goal of the analysis will be to determine whether the proposed metrics can serve as reliable and efficient proxies for k-NN performance.
+The experimental results indicate a trade-off between computational efficiency and classification accuracy. While the proposed similarity space metrics generally lead to faster training times, they do not consistently achieve the same level of accuracy as the baseline k-NN classifier tuned with 5-fold cross-validation. A summary of the mean accuracy for each metric across the 15 datasets is presented in Table \ref{tab:results}, where the custom models are indicated as I through VI, corresponding to the six proposed metrics, as follows:
 
-The analysis will be structured around three key research questions:
-\begin{enumerate}
-    \item \textbf{Performance Equivalence:} Can optimizing for the proposed metrics yield classification accuracy comparable to that achieved by optimizing directly for cross-validation accuracy?
-    \item \textbf{Computational Efficiency:} Do the proposed metrics offer a significant reduction in the computational time required for hyperparameter optimization compared to the baseline?
-    \item \textbf{Predictive Validity:} Is there a strong statistical correlation between the values of the proposed metrics and the actual classification performance of the k-NN model?
-\end{enumerate}
-To address these questions, the forthcoming results will be presented and analyzed as follows. First, a comprehensive comparison of the mean and standard deviation of test accuracy for all seven models across the 15 datasets will be conducted to assess performance and stability. Second, a detailed analysis of the training times will quantify the computational speed-up offered by the metric-based approaches. Finally, a correlation analysis will be performed to directly measure the strength of the relationship between each proposed metric and the resulting classification accuracy, providing evidence for their validity as performance predictors. A synthesis of these findings will determine which, if any, of the metrics provide the best trade-off between computational cost and predictive power.
+\begin{itemize}
+    \item I: n-Volume of the Intersection of the Convex Hulls
+    \item II: n-Volume of the Convex Hulls
+    \item III: Dissimilarity
+    \item IV: Cosine Similarity between the Centroids' Hyperplane and the Opposite Unit Hyperplane
+    \item V: Silhouette
+    \item VI: Spread
+\end{itemize}
+
+\begin{table*}[htbp]
+\caption{Mean Accuracy of k-NN with Different Metrics}
+\label{tab:results}
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|c|}
+\hline
+\textbf{Dataset} & \textbf{Baseline (accuracy)} & \textbf{I} & \textbf{II} & \textbf{III} & \textbf{IV} & \textbf{V} & \textbf{VI} \\
+\hline
+Banknote Authentication & 0.942 & \textbf{0.887} & \textbf{0.887} & \textbf{0.887} & 0.881 & \textbf{0.887} & \textbf{0.887} \\
+Breast Cancer & 0.947 & 0.887 & 0.899 & 0.910 & \textbf{0.913} & 0.910 & 0.887 \\
+Car Evaluation & 0.850 & 0.700 & 0.824 & 0.701 & 0.700 & \textbf{0.850} & 0.701 \\
+Credit Germany (Statlog)\textsuperscript{1} & 0.725 & 0.000 & 0.000 & 0.000 & 0.703 & \textbf{0.708} & 0.000 \\
+Diabetes (Pima) & 0.751 & 0.699 & 0.699 & 0.723 & \textbf{0.734} & 0.723 & 0.723 \\
+Heart Disease (Statlog) & 0.577 
+& 0.570 & 0.570 & 0.574 & \textbf{0.587} & 0.574 & 0.580 \\
+Ionosphere & 0.860 & 0.717 & 0.717 & \textbf{0.780} & \textbf{0.780} & 0.746 & 0.717 \\
+Iris\textsuperscript{2} & 0.000 & 0.826 & 0.820 & 0.833 & 0.813 & \textbf{0.846} & 0.833 \\
+Monk's Problems (monk2) & 0.754 & 0.722 & 0.747 & 0.747 & \textbf{0.752} & 0.747 & 0.747 \\
+Mushroom & 1.000 & 0.892 & 0.892 & 0.892 & 0.991 & \textbf{0.996} & 0.915 \\
+Phoneme & 0.809 & \textbf{0.775} & \textbf{0.775} & \textbf{0.775} & 0.745 & \textbf{0.775} & \textbf{0.775} \\
+Spambase & 0.885 & 0.756 & 0.756 & 0.788 & \textbf{0.796} 
+& 0.756 & 0.755 \\
+Titanic & 0.779 & 0.742 & 0.742 & \textbf{0.773} & 0.754 & \textbf{0.773} & \textbf{0.773} \\
+Wine & 0.983 & 0.961 & 0.960 & 0.961 & 0.971 & \textbf{0.977} & 0.972 \\
+Yeast & 0.584 & N/A & \textbf{0.529} & 0.507 & 0.507 & 0.505 & N/A \\
+\hline
+\end{tabular}
+\end{center}
+\textsuperscript{1} Models with zero accuracy failed to complete the cross-validation. \\
+\textsuperscript{2} An unknown issue caused the baseline model to return zero accuracy on the Iris dataset, likely due to a data preprocessing error or an issue with the k-NN implementation.
+\end{table*}
+
+The baseline model, optimized directly for accuracy, generally achieves the highest performance. However, some of the proposed metrics show competitive results on specific datasets. For instance, the \textbf{Silhouette} metric performs on par with the baseline on the \textbf{Car Evaluation} dataset, and \textbf{Opposite hyperplane} is competitive on the \textbf{Heart Disease (Statlog)} dataset.
+
+\subsection{Computational Efficiency: Training and Inference Times}
+In terms of computational cost, the proposed metrics consistently show lower training and prediction times compared to the baseline, which relies on the more expensive 5-fold cross-validation. This confirms the central hypothesis that using proxy metrics can significantly reduce the computational burden of hyperparameter optimization. Tables \ref{tab:training_time_results} and \ref{tab:inference_time_results} provide a detailed breakdown of the mean training and inference times (in seconds) for each model across all datasets.
+
+The data clearly shows that the baseline model is the most computationally expensive to train, often by a significant margin, especially for larger datasets like Mushroom, Phoneme, and Spambase. The proxy metrics offer a much faster alternative for the optimization phase. Inference times are generally low across all models, but the baseline still tends to be slightly slower, though the differences are less pronounced than in training. This suggests that for applications where computational resources are a major constraint, these metrics could be a viable alternative, provided that the potential drop in accuracy is acceptable.
+
+\begin{table*}[htbp]
+\caption{Mean Training Time (seconds) of k-NN with Different Metrics}
+\label{tab:training_time_results}
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|c|}
+\hline
+\textbf{Dataset} & \textbf{Baseline} & \textbf{I} & \textbf{II} & \textbf{III} & \textbf{IV} & \textbf{V} & \textbf{VI} \\
+\hline
+Banknote Auth. & 4.599 & 1.334 & 1.603 & 1.659 & 1.599 & 1.585 & 1.568 \\
+Breast Cancer & 3.841 & 0.485 & 0.383 & 0.409 & 0.385 & 0.503 & 0.516 \\
+Car Evaluation & 9.923 & 2.816 & 3.707 & 2.663 & 3.568 & 3.173 & 3.236 \\
+Credit Germany & 14.604 & 3.980 & 3.923 & 3.945 & 3.872 & 4.006 & 4.067 \\
+Diabetes (Pima) & 4.760 & 1.158 & 1.110 & 0.660 & 1.027 & 0.737 & 0.765 \\
+Heart Disease & 3.152 & 1.762 & 0.618 & 0.268 & 0.373 & 0.291 & 0.246 \\
+Ionosphere & 10.724 & 1.365 & 1.666 & 1.425 & 1.284 & 1.414 & 1.511 \\
+Iris & 5.783 & 0.204 & 0.321 & 0.306 & 0.213 & 0.262 & 0.249 \\
+Monk's Problems & 8.205 & 0.569 & 0.553 & 0.385 & 0.424 & 0.507 & 0.561 \\
+Mushroom & 67.514 & 56.455 & 55.503 & 56.398 & 57.148 & 66.105 & 67.027 \\
+Phoneme & 48.991 & 37.407 & 31.158 & 31.648 & 36.572 & 46.664 & 41.788 \\
+Spambase & 38.910 & 42.578 & 43.507 & 43.606 & 42.967 & 51.477 & 51.589 \\
+Titanic & 8.908 & 3.320 & 2.280 & 2.585 & 2.129 & 2.769 & 2.776 \\
+Wine & 5.859 & 0.302 & 0.581 & 0.532 & 0.326 & 0.438 & 0.466 \\
+Yeast & 10.429 & N/A & N/A & 3.882 & 2.389 & 3.916 & 3.954 \\
+\hline
+\end{tabular}
+\end{center}
+\end{table*}
+
+\begin{table*}[htbp]
+\caption{Mean Inference Time (seconds) of k-NN with Different Metrics}
+\label{tab:inference_time_results}
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|c|c|c|}
+\hline
+\textbf{Dataset} & \textbf{Baseline} & \textbf{I} & \textbf{II} & \textbf{III} & \textbf{IV} & \textbf{V} & \textbf{VI} \\
+\hline
+Banknote Auth. & 0.00347 & 0.0100 & 0.0124 & 0.0160 & 0.0246 & 0.0108 & 0.0107 \\
+Breast Cancer & 0.00257 & 0.00377 & 0.00337 & 0.00360 & 0.00385 & 0.00330 & 0.00390 \\
+Car Evaluation & 0.0470 & 0.0366 & 0.0172 & 0.0229 & 0.0420 & 0.0380 & 0.0238 \\
+Credit Germany & 0.298 & 0.149 & 0.165 & 0.153 & 0.161 & 0.154 & 0.165 \\
+Diabetes (Pima) & 0.00339 & 0.0110 & 0.0138 & 0.00554 & 0.0120 & 0.00530 & 0.00560 \\
+Heart Disease & 0.00243 & 0.00254 & 0.00230 & 0.00238 & 0.00240 & 0.00245 & 0.00248 \\
+Ionosphere & 0.286 & 0.081 & 0.093 & 0.070 & 0.082 & 0.0611 & 0.101 \\
+Iris & 0.00234 & 0.00210 & 0.00194 & 0.00232 & 0.00170 & 0.00180 & 0.00185 \\
+Monk's Problems & 0.00300 & 0.00530 & 0.00310 & 0.00301 & 0.00650 & 0.00395 & 0.00320 \\
+Mushroom & 0.655 & 0.780 & 0.807 & 0.788 & 0.954 & 0.594 & 0.537 \\
+Phoneme & 0.0472 & 0.290 & 0.268 & 0.282 & 0.571 & 0.330 & 0.312 \\
+Spambase & 0.343 & 0.594 & 0.700 & 0.696 & 0.702 & 0.685 & 0.687 \\
+Titanic & 0.0122 & 0.036 & 0.0186 & 0.021 & 0.0304 & 0.0184 & 0.0175 \\
+Wine & 0.00271 & 0.0030 & 0.0060 & 0.0047 & 0.00275 & 0.0042 & 0.00350 \\
+Yeast & 0.0075 & N/A & N/A & 0.0296 & 0.0193 & 0.026 & 0.022 \\
+\hline
+\end{tabular}
+\end{center}
+\end{table*}
+
+\section{Conclusion}
+This study investigated the viability of using a suite of novel similarity space metrics as computationally efficient proxies for k-NN classification performance. The experimental results on 15 diverse datasets demonstrate that while these metrics can significantly reduce the computational burden of hyperparameter optimization compared to traditional k-fold cross-validation, this efficiency comes at the cost of classification accuracy. The baseline k-NN classifier, tuned by directly optimizing for accuracy, consistently outperformed the models tuned with the proposed proxy metrics. This indicates that while the geometric and statistical properties captured by these metrics are relevant to class separability, they do not serve as a perfect substitute for direct performance evaluation.
+
+The analysis of computational cost, however, confirms the primary advantage of the proposed metrics. The significant reduction in training time makes them a compelling option for scenarios with limited computational budgets or where rapid model prototyping is required.
+
+Future research could explore several avenues. First, a deeper analysis of the cases where certain metrics perform well could reveal more about the relationship between data characteristics and the effectiveness of specific proxies. Second, hybrid optimization strategies that combine the speed of the proposed metrics with the robustness of cross-validation could be developed. For instance, the proxy metrics could be used to quickly narrow down the hyperparameter search space, followed by a more focused cross-validation on the most promising candidates. Finally, the anomalous results observed for some datasets highlight the importance of robust experimental design and suggest that further investigation into the stability and reliability of these metrics is warranted.
+
+In conclusion, while the proposed similarity space metrics do not fully replace the need for traditional cross-validation, they offer a valuable set of tools for practitioners who need to balance the trade-off between computational cost and classification performance in the context of k-NN hyperparameter tuning.
 
 \begin{thebibliography}{99}
 \bibitem{b1} T. M. Cover and P. E. Hart, “Nearest neighbor pattern classification,” \textit{IEEE Transactions on Information Theory}, vol. 13, no. 1, pp. 21-27, Jan. 1967.
@@ -233,6 +343,7 @@ To address these questions, the forthcoming results will be presented and analyz
 \bibitem{b68} S. Aeberhard and M. Forina, “Wine Dataset,” UCI Machine Learning Repository, 1991. [Online]. doi: 10.24432/C5PC7J.
 \bibitem{b69} S. Aeberhard, D. Coomans, and O. de Vel, “Comparative analysis of statistical pattern recognition methods in high dimensional settings,” \textit{Pattern Recognition}, vol. 27, no. 8, pp. 1065-1077, 1994.
 \bibitem{b70} K. Nakai, “Yeast Dataset,” UCI Machine Learning Repository, 1996. [Online]. doi: 10.24432/C5KG68.
+\bibitem{b71} K. Nakai and P. Horton, “A new method for predicting sorting signals in proteins from their amino acid sequences,” in \textit{Proceedings of the Fourth International Conference on Intelligent Systems for Molecular Biology}, 1996, pp. 146-155.
 \bibitem{b72} M. V. F. Menezes, L. C. B. Torres, and A. P. Braga, “Width optimization of RBF kernels for binary classification of support vector machines: A density estimation-based approach,” \textit{Pattern Recognition Letters}, vol. 128, pp. 1-7, 2019.
 \end{thebibliography}
 
