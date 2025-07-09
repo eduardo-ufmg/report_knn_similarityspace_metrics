@@ -1,0 +1,83 @@
+\section{Resultados}
+
+\begin{frame}
+    \frametitle{Acurácia Média}
+
+    \begin{table}[!htbp]
+        \centering
+        \caption{Acurácia Média do k-NN com Diferentes Métricas}
+        \resizebox{\textwidth}{!}{%
+        \begin{tabular}{lccccccc}
+        \hline
+        \textbf{Dataset} & \textbf{Baseline} & \textbf{I} & \textbf{II} & \textbf{III} & \textbf{IV} & \textbf{V} & \textbf{VI} \\
+        \hline
+        Banknote Auth. & 0.942 & \textbf{0.887} & \textbf{0.887} & \textbf{0.887} & 0.881 & \textbf{0.887} & \textbf{0.887} \\
+        Breast Cancer & 0.947 & 0.887 & 0.899 & 0.910 & \textbf{0.913} & 0.910 & 0.887 \\
+        Car Evaluation & 0.850 & 0.700 & 0.824 & 0.701 & 0.700 & \textbf{0.850} & 0.701 \\
+        Credit Germany & 0.725 & 0.000 & 0.000 & 0.000 & 0.703 & \textbf{0.708} & 0.000 \\
+        Diabetes (Pima) & 0.751 & 0.699 & 0.699 & 0.723 & \textbf{0.734} & 0.723 & 0.723 \\
+        Heart Disease & 0.577 & 0.570 & 0.570 & 0.574 & \textbf{0.587} & 0.574 & 0.580 \\
+        Ionosphere & 0.860 & 0.717 & 0.717 & \textbf{0.780} & \textbf{0.780} & 0.746 & 0.717 \\
+        \hline
+        \end{tabular}%
+        }
+    \end{table}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Tempo de Treinamento}
+
+    \begin{table}[!htbp]
+        \centering
+        \caption{Tempo Médio de Treinamento (segundos)}
+        \resizebox{\textwidth}{!}{%
+        \begin{tabular}{lccccccc}
+        \hline
+        \textbf{Dataset} & \textbf{Baseline} & \textbf{I} & \textbf{II} & \textbf{III} & \textbf{IV} & \textbf{V} & \textbf{VI} \\
+        \hline
+        Banknote Auth. & 4.599 & 1.334 & 1.603 & 1.659 & 1.599 & 1.585 & 1.568 \\
+        Breast Cancer & 3.841 & 0.485 & 0.383 & 0.409 & 0.385 & 0.503 & 0.516 \\
+        Car Evaluation & 9.923 & 2.816 & 3.707 & 2.663 & 3.568 & 3.173 & 3.236 \\
+        Credit Germany & 14.604 & 3.980 & 3.923 & 3.945 & 3.872 & 4.006 & 4.067 \\
+        Diabetes (Pima) & 4.760 & 1.158 & 1.110 & 0.660 & 1.027 & 0.737 & 0.765 \\
+        Heart Disease & 3.152 & 1.762 & 0.618 & 0.268 & 0.373 & 0.291 & 0.246 \\
+        Ionosphere & 10.724 & 1.365 & 1.666 & 1.425 & 1.284 & 1.414 & 1.511 \\
+        \hline
+        \end{tabular}%
+        }
+    \end{table}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Tempo de Inferência}
+
+    \begin{table}[!htbp]
+        \centering
+        \caption{Tempo Médio de Inferência (segundos)}
+        \resizebox{\textwidth}{!}{%
+        \begin{tabular}{lccccccc}
+        \hline
+        \textbf{Dataset} & \textbf{Baseline} & \textbf{I} & \textbf{II} & \textbf{III} & \textbf{IV} & \textbf{V} & \textbf{VI} \\
+        \hline
+        Banknote Auth. & 0.00347 & 0.0100 & 0.0124 & 0.0160 & 0.0246 & 0.0108 & 0.0107 \\
+        Breast Cancer & 0.00257 & 0.00377 & 0.00337 & 0.00360 & 0.00385 & 0.00330 & 0.00390 \\
+        Car Evaluation & 0.0470 & 0.0366 & 0.0172 & 0.0229 & 0.0420 & 0.0380 & 0.0238 \\
+        Credit Germany & 0.298 & 0.149 & 0.165 & 0.153 & 0.161 & 0.154 & 0.165 \\
+        Diabetes (Pima) & 0.00339 & 0.0110 & 0.0138 & 0.00554 & 0.0120 & 0.00530 & 0.00560 \\
+        Heart Disease & 0.00243 & 0.00254 & 0.00230 & 0.00238 & 0.00240 & 0.00245 & 0.00248 \\
+        Ionosphere & 0.286 & 0.081 & 0.093 & 0.070 & 0.082 & 0.0611 & 0.101 \\
+        \hline
+        \end{tabular}%
+        }
+    \end{table}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Conclusões}
+    \begin{itemize}
+        \item As métricas propostas (I-VI) demonstraram uma redução significativa no tempo de treinamento em comparação com o baseline.
+        \item O impacto na acurácia foi variado. Em alguns datasets, a acurácia foi aproximadamente mantida, mas em outros, houve uma queda de desempenho.
+        \item O tempo de inferência também apresentou resultados mistos, com ganhos de velocidade em alguns casos e perdas em outros.
+        \item Fica evidente um \textit{trade-off} entre velocidade de treinamento e acurácia, indicando que a escolha da métrica depende da prioridade da aplicação.
+    \end{itemize}
+\end{frame}

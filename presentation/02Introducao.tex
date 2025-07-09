@@ -1,0 +1,184 @@
+\section{Introdução}
+
+\begin{frame}
+
+    \frametitle{Classificador k-Nearest Neighbors (kNN)}
+
+    \begin{itemize}
+    
+        \item Simples, consolidado e amplamente utilizado;
+        \item Altamente sensível à escolha dos hyperparâmetros:
+        \begin{itemize}
+            \item Número de vizinhos $k$;
+            \item Raio do Kernel $h$.
+        \end{itemize}
+
+    \end{itemize}
+
+\end{frame}
+
+
+\begin{frame}
+
+    \frametitle{Abordagem Clássica}
+
+    \begin{itemize}
+    
+        \item A escolha de $k$ e $h$ é feita com base na acurácia do classificador;
+        \item A acurácia é calculada através de validação cruzada;
+        \item O processo é computacionalmente caro, especialmente para grandes conjuntos de dados.
+    
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+
+    \frametitle{Objetivo do Trabalho}
+
+    \begin{itemize}
+    
+        \item Investigar se é possível prever a acurácia do classificador kNN com base em métricas do espaço de similaridade;
+        \item Utilizar essas métricas como preditores para determinar os melhores valores de $k$ e $h$.
+    
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+
+    \frametitle{Kernel por Função de Base Radial (RBF)}
+
+    \begin{equation}
+        K(\mathbf{u}, \mathbf{v}) = \exp\left(-\frac{\|\mathbf{u} - \mathbf{v}\|^2}{2h^2}\right)
+    \end{equation}
+
+    \begin{itemize}
+        \item $K(\mathbf{u}, \mathbf{v})$ é o kernel entre os vetores $\mathbf{u}$ e $\mathbf{v}$;
+        \item $h$ é o raio do kernel, que controla a suavidade da função de similaridade.
+        \item O kernel é computado entre cada amostra e seus $k$ vizinhos mais próximos.
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+
+    \frametitle{Transformação para o Espaço de Similaridade}
+
+    \begin{equation}
+        Q_{ik} = \sum_{j=1}^{m} K_{ij} \cdot \mathbb{I}(y_j = c_k)
+    \end{equation}
+
+    \begin{itemize}
+        \item $Q_{ik}$ é a soma dos pesos das instâncias da classe $c_k$;
+        \item $K_{ij}$ é o kernel entre as instâncias $i$ e $j$;
+        \item $\mathbb{I}(y_j = c_k)$ é uma função indicadora que vale 1 se a instância $j$ pertence à classe $c_k$.
+    \end{itemize}
+
+\end{frame}
+
+\section{Métricas do Espaço de Similaridade}
+
+\begin{frame}
+
+    \frametitle{Dissimilaridade}
+
+    Proposta por Menezes et al. (2019):
+
+    \begin{equation}
+        D_{ij} = |\mathbf{v}i - \mathbf{v}j|
+        \cdot \frac{\mathbf{v}i \cdot \mathbf{v}j}{|\mathbf{v}i| |\mathbf{v}j|}
+    \end{equation}
+
+    Computada entre cada par de centróides. A pontuação é a média das dissimilaridades entre os centróides de cada classe menos o desvio padrão:
+    \begin{equation}
+        D = \frac{1}{C} \sum_{c=1}^{C} \left( \frac{1}{C-1} \sum_{c' \neq c} D_{cc'} \right) - \sigma(D_{cc'}) 
+    \end{equation}
+
+    \begin{itemize}
+        \item $C$ é o número de classes;
+        \item $D_{cc'}$ é a dissimilaridade entre os centróides das classes $c$ e $c'$;
+        \item $\sigma(D_{cc'})$ é o desvio padrão das dissimilaridades.
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+
+    \frametitle{n-Volume da Interseção entre os Fechamentos Convexos}
+
+    \begin{itemize}
+        \item A pontuação é a média dos volumes das interseções entre os fechamentos convexos de cada par de classes;
+        \item Computada como um problema de otimização linear, resolvido por pontos interiores.
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+
+    \frametitle{n-Volume dos Fechamentos Convexos}
+
+    \begin{itemize}
+        \item A pontuação é a média dos volumes dos fechamentos convexos de cada classe menos o desvio padrão;
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+
+    \frametitle{Separação Espacial}
+
+    \begin{equation}
+    \begin{split}
+        \text{Final Score} ={}& ((\mu_{\text{between}} \cdot \mu_{\text{within}}) - (\sigma_{\text{between}} \cdot \sigma_{\text{within}})) \\
+        & \cdot (1 - f_h) \cdot (1 - f_k)
+    \end{split}
+    \end{equation}
+
+    \begin{itemize}
+        \item $\mu_{\text{between}}$ é a média das distâncias entre amostras de classes diferentes;
+        \item $\mu_{\text{within}}$ é a média das distâncias entre amostras da mesma classe;
+        \item $\sigma_{\text{between}}$ é o desvio padrão das distâncias entre amostras de classes diferentes;
+        \item $\sigma_{\text{within}}$ é o desvio padrão das distâncias entre amostras da mesma classe;
+        \item $f_h$ é um fator de regularização para o raio do kernel;
+        \item $f_k$ é um fator de regularização para o número de vizinhos $k$.
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+
+    \frametitle{Silhueta}
+
+    \begin{equation}
+        S = \frac{1}{n} \sum_{i=1}^{n} \left( \frac{b(i) - a(i)}{\max(a(i), b(i))} \right)
+    \end{equation}
+
+    \begin{itemize}
+        \item $n$ é o número total de amostras;
+        \item $a(i)$ é a distância média da amostra $i$ para as outras amostras da mesma classe;
+        \item $b(i)$ é a distância média da amostra $i$ para as amostras da classe mais próxima.
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+
+    \frametitle{Paralelismo Entre o Hyperplano Gerado e o Hyperplano Oposto Unitário}
+
+    \begin{itemize}
+        \item Mede o paralelismo entre o hiperplano formado pelos centróides das classes e um hiperplano de referência;
+        \item A pontuação é inversamente proporcional à similaridade de cosseno absoluta entre os vetores normais dos dois hiperplanos.
+    \end{itemize}
+
+    \begin{equation}
+        \text{Pontuação} = (1 - |\mathbf{n}_{\text{centróide}} \cdot \mathbf{n}_{\text{oposto}}|) \cdot (1 - f_k)
+    \end{equation}
+
+    \begin{itemize}
+        \item $\mathbf{n}_{\text{centróide}}$ é o vetor normal ao hiperplano dos centróides;
+        \item $\mathbf{n}_{\text{oposto}}$ é o vetor normal ao hiperplano de referência;
+        \item $f_k$ é um fator de regularização para o número de vizinhos $k$.
+    \end{itemize}
+
+\end{frame}
