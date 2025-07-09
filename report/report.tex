@@ -72,11 +72,12 @@ The resulting matrix $Q$ provides the final representation. Each row of $Q$ is a
 The core contribution of this work is a suite of six novel metrics designed to quantify different aspects of class separability and compactness within the similarity space. These metrics are intended to serve as computationally efficient proxies for k-NN classification accuracy. Each metric is derived from established principles in pattern recognition, computational geometry, and statistics, but is formulated to capture specific geometric properties of the class distributions in the transformed space.
 
 \subsection{Dissimilarity: A Hybrid Distance-Direction Metric}
-This metric computes a scalar value representing the separability between classes by considering both the distance and the directional alignment of their centroids in the similarity space. For each class, a centroid vector $\mathbf{v}_k$ is calculated as the arithmetic mean of all sample vectors in that class. Then, for each unique pair of class centroids $(\mathbf{v}_i, \mathbf{v}_j)$, a pairwise dissimilarity score is computed as:
+This metric, adapted from the work of Menezes et al. \cite{b72}, computes a scalar value representing the separability between classes by considering both the distance and the directional alignment of their centroids in the similarity space. For each class, a centroid vector vk is calculated as the arithmetic mean of all sample vectors in that class. Then, for each unique pair of class centroids (vi,vj), a pairwise dissimilarity score is computed as:
 \begin{equation}
-D_{ij} = \|\mathbf{v}_i - \mathbf{v}_j\| \cdot \frac{\mathbf{v}_i \cdot \mathbf{v}_j}{\|\mathbf{v}_i\| \|\mathbf{v}_j\|}
+D_{ij} = |\mathbf{v}i - \mathbf{v}j|
+\cdot \frac{\mathbf{v}i \cdot \mathbf{v}j}{|\mathbf{v}i| |\mathbf{v}j|}
 \end{equation}
-This formula combines the Euclidean distance between the centroids with their cosine similarity \cite{b20}. The intuition is that well-separated classes should have centroids that are not only far apart (large Euclidean distance) but also point in different directions within the similarity space (high cosine similarity, as vectors are non-negative). The final score is derived from the mean ($\mu_{\mathcal{D}}$) and standard deviation ($\sigma_{\mathcal{D}}$) of all pairwise dissimilarities, adjusted by factors related to the hyperparameters being tuned. This approach of combining magnitude and direction is motivated by research into "direction-aware" distance metrics, which have been shown to be more robust than Euclidean distance alone in high-dimensional spaces where magnitude can be misleading \cite{b23, b24, b25}.
+This formula, originally proposed as a dissimilarity function for optimizing RBF kernel widths in SVMs \cite{b72}, combines the Euclidean distance between the centroids with their cosine similarity. The intuition, as described by Menezes et al., is that multiplying the Euclidean distance by the cosine similarity addresses a limitation of using Euclidean distance alone, where the metric would not converge to zero for very small kernel widths, potentially creating spurious local maxima. The final score in our implementation is derived from the mean ($\mu{\mathcal{D}})andstandarddeviation(\sigma{\mathcal{D}}$) of all pairwise dissimilarities, adjusted by factors related to the hyperparameters being tuned. This approach of combining magnitude and direction also aligns with broader research into "direction-aware" distance metrics, which have been shown to be more robust than Euclidean distance alone in high-dimensional spaces where magnitude can be misleading \cite{b23, b24, b25}.
 
 \subsection{n-Volume of the Intersection of the Convex Hulls}
 This metric quantifies class overlap by measuring the volume of the geometric intersection of the class convex hulls in the $N$-dimensional similarity space. A convex hull is defined as the smallest convex set that encloses all points of a given class \cite{b26}. The intersection of the convex hulls for all classes, $\mathcal{I} = \bigcap_{k=1}^{p} \text{conv}(\mathcal{C}_k)$, represents the region of the similarity space where points cannot be unambiguously assigned to a single class based on their convex hull membership. The final score is the $N$-dimensional volume of this intersection region \cite{b20}.
@@ -166,77 +167,77 @@ To address these questions, the forthcoming results will be presented and analyz
 % Note: The report text contains citations up to [1], but only 18 references are provided in the report's reference list.
 % The following bibliography is based on the provided list. Citations for numbers greater than 18 will be unresolved without further information.
 \begin{thebibliography}{99}
-\bibitem{b1} T. M. Cover and P. E. Hart, “Nearest neighbor pattern classification,” \textit{IEEE Transactions on Information Theory}, vol. 13, no. 1, pp. 21–27, Jan. 1967.
-\bibitem{b2} D. S. Broomhead and D. Lowe, “Multivariable functional interpolation and adaptive networks,” \textit{Complex Systems}, vol. 2, pp. 321–355, 1988.
-\bibitem{b3} J. Mockus, “On Bayesian methods for seeking the extremum,” in \textit{Optimization Techniques IFIP Technical Conference, Novosibirsk, July 1–7, 1974}, G. I. Marchuk, Ed. Berlin, Heidelberg: Springer, 1975, pp. 400–404.
-\bibitem{b4} D. R. Jones, M. Schonlau, and W. J. Welch, “Efficient global optimization of expensive black-box functions,” \textit{Journal of Global Optimization}, vol. 13, no. 4, pp. 455–492, 1998.
+\bibitem{b1} T. M. Cover and P. E. Hart, “Nearest neighbor pattern classification,” \textit{IEEE Transactions on Information Theory}, vol. 13, no. 1, pp. 21-27, Jan. 1967.
+\bibitem{b2} D. S. Broomhead and D. Lowe, “Multivariable functional interpolation and adaptive networks,” \textit{Complex Systems}, vol. 2, pp. 321-355, 1988.
+\bibitem{b3} J. Mockus, “On Bayesian methods for seeking the extremum,” in \textit{Optimization Techniques IFIP Technical Conference, Novosibirsk, July 1-7, 1974}, G. I. Marchuk, Ed. Berlin, Heidelberg: Springer, 1975, pp. 400-404.
+\bibitem{b4} D. R. Jones, M. Schonlau, and W. J. Welch, “Efficient global optimization of expensive black-box functions,” \textit{Journal of Global Optimization}, vol. 13, no. 4, pp. 455-492, 1998.
 \bibitem{b5} E. Fix and J. L. Hodges, “Discriminatory Analysis. Nonparametric Discrimination: Consistency Properties,” USAF School of Aviation Medicine, Randolph Field, Texas, Project 21-49-004, Report 4, Feb. 1951.
-\bibitem{b6} T. M. Cover and P. E. Hart, “Nearest neighbor pattern classification,” \textit{IEEE Transactions on Information Theory}, vol. 13, no. 1, pp. 21–27, Jan. 1967.
-\bibitem{b7} T. M. Cover and P. E. Hart, “Nearest neighbor pattern classification,” \textit{IEEE Transactions on Information Theory}, vol. 13, no. 1, pp. 21–27, Jan. 1967.
-\bibitem{b8} E. Y. Boateng, J. Otoo, and D. A. Abaye, “Basic tenets of classification algorithms K-nearest-neighbor, support vector machine, random forest and neural network: a review,” \textit{Journal of Data Analysis and Information Processing}, vol. 8, no. 4, pp. 341–357, 2020.
-\bibitem{b9} A. Singh, N. Thakur, and A. Sharma, “A Review on Analysis of K-Nearest Neighbor Classification Machine Learning Algorithms based on Supervised Learning,” \textit{International Journal of Engineering and Advanced Technology (IJEAT)}, vol. 10, no. 5, pp. 191–196, 2021.
-\bibitem{b10} T. M. Cover and P. E. Hart, “Nearest neighbor pattern classification,” \textit{IEEE Transactions on Information Theory}, vol. 13, no. 1, pp. 21–27, Jan. 1967.
-\bibitem{b11} K. Beyer, J. Goldstein, R. Ramakrishnan, and U. Shaft, “When is ‘nearest neighbor’ meaningful?,” in \textit{International Conference on Database Theory}, 1999, pp. 217–235.
+\bibitem{b6} T. M. Cover and P. E. Hart, “Nearest neighbor pattern classification,” \textit{IEEE Transactions on Information Theory}, vol. 13, no. 1, pp. 21-27, Jan. 1967.
+\bibitem{b7} T. M. Cover and P. E. Hart, “Nearest neighbor pattern classification,” \textit{IEEE Transactions on Information Theory}, vol. 13, no. 1, pp. 21-27, Jan. 1967.
+\bibitem{b8} E. Y. Boateng, J. Otoo, and D. A. Abaye, “Basic tenets of classification algorithms K-nearest-neighbor, support vector machine, random forest and neural network: a review,” \textit{Journal of Data Analysis and Information Processing}, vol. 8, no. 4, pp. 341-357, 2020.
+\bibitem{b9} A. Singh, N. Thakur, and A. Sharma, “A Review on Analysis of K-Nearest Neighbor Classification Machine Learning Algorithms based on Supervised Learning,” \textit{International Journal of Engineering and Advanced Technology (IJEAT)}, vol. 10, no. 5, pp. 191-196, 2021.
+\bibitem{b10} T. M. Cover and P. E. Hart, “Nearest neighbor pattern classification,” \textit{IEEE Transactions on Information Theory}, vol. 13, no. 1, pp. 21-27, Jan. 1967.
+\bibitem{b11} K. Beyer, J. Goldstein, R. Ramakrishnan, and U. Shaft, “When is ‘nearest neighbor’ meaningful?,” in \textit{International Conference on Database Theory}, 1999, pp. 217-235.
 \bibitem{b12} G. James, D. Witten, T. Hastie, and R. Tibshirani, \textit{An Introduction to Statistical Learning}. New York: Springer, 2013.
-\bibitem{b13} S. Arlot and A. Celisse, “A survey of cross-validation procedures for model selection,” \textit{Statistics Surveys}, vol. 4, pp. 40–79, 2010.
-\bibitem{b14} M. Stone, “Cross-validatory choice and assessment of statistical predictions,” \textit{Journal of the Royal Statistical Society: Series B (Methodological)}, vol. 36, no. 2, pp. 111–133, 1974.
-\bibitem{b15} R. Kohavi, “A study of cross-validation and bootstrap for accuracy estimation and model selection,” in \textit{Proceedings of the 14th International Joint Conference on Artificial Intelligence (IJCAI)}, 1995, vol. 2, pp. 1137–1145.
-\bibitem{b16} S. Arlot and A. Celisse, “A survey of cross-validation procedures for model selection,” \textit{Statistics Surveys}, vol. 4, pp. 40–79, 2010.
-\bibitem{b17} P. Refaeilzadeh, L. Tang, and H. Liu, “Cross-validation,” in \textit{Encyclopedia of Database Systems}, L. Liu and M. T. Özsu, Eds. Boston, MA: Springer US, 2009, pp. 532–538.
-\bibitem{b18} D. S. Broomhead and D. Lowe, “Multivariable functional interpolation and adaptive networks,” \textit{Complex Systems}, vol. 2, pp. 321–355, 1988.
-\bibitem{b19} C. Cortes and V. Vapnik, “Support-vector networks,” \textit{Machine Learning}, vol. 20, pp. 273–297, 1995.
+\bibitem{b13} S. Arlot and A. Celisse, “A survey of cross-validation procedures for model selection,” \textit{Statistics Surveys}, vol. 4, pp. 40-79, 2010.
+\bibitem{b14} M. Stone, “Cross-validatory choice and assessment of statistical predictions,” \textit{Journal of the Royal Statistical Society: Series B (Methodological)}, vol. 36, no. 2, pp. 111-133, 1974.
+\bibitem{b15} R. Kohavi, “A study of cross-validation and bootstrap for accuracy estimation and model selection,” in \textit{Proceedings of the 14th International Joint Conference on Artificial Intelligence (IJCAI)}, 1995, vol. 2, pp. 1137-1145.
+\bibitem{b16} S. Arlot and A. Celisse, “A survey of cross-validation procedures for model selection,” \textit{Statistics Surveys}, vol. 4, pp. 40-79, 2010.
+\bibitem{b17} P. Refaeilzadeh, L. Tang, and H. Liu, “Cross-validation,” in \textit{Encyclopedia of Database Systems}, L. Liu and M. T. Özsu, Eds. Boston, MA: Springer US, 2009, pp. 532-538.
+\bibitem{b18} D. S. Broomhead and D. Lowe, “Multivariable functional interpolation and adaptive networks,” \textit{Complex Systems}, vol. 2, pp. 321-355, 1988.
+\bibitem{b19} C. Cortes and V. Vapnik, “Support-vector networks,” \textit{Machine Learning}, vol. 20, pp. 273-297, 1995.
 \bibitem{b20} This study's methodology.
-\bibitem{b21} D. S. Broomhead and D. Lowe, “Multivariable functional interpolation and adaptive networks,” \textit{Complex Systems}, vol. 2, pp. 321–355, 1988.
-\bibitem{b22} D. S. Broomhead and D. Lowe, “Multivariable functional interpolation and adaptive networks,” \textit{Complex Systems}, vol. 2, pp. 321–355, 1988.
-\bibitem{b23} X. Gu, P. P. Angelov, D. Kangin, and J. C. Principe, “A new type of distance metric and its use for clustering,” \textit{Evolving Systems}, vol. 8, no. 3, pp. 167–177, Sep. 2017.
-\bibitem{b24} X. Gu, P. P. Angelov, D. Kangin, and J. C. Principe, “A new type of distance metric and its use for clustering,” \textit{Evolving Systems}, vol. 8, no. 3, pp. 167–177, Sep. 2017.
-\bibitem{b25} C. C. Aggarwal, A. Hinneburg, and D. A. Keim, “On the surprising behavior of distance metrics in high dimensional space,” in \textit{International Conference on Database Theory}, 2001, pp. 420–434.
+\bibitem{b21} D. S. Broomhead and D. Lowe, “Multivariable functional interpolation and adaptive networks,” \textit{Complex Systems}, vol. 2, pp. 321-355, 1988.
+\bibitem{b22} D. S. Broomhead and D. Lowe, “Multivariable functional interpolation and adaptive networks,” \textit{Complex Systems}, vol. 2, pp. 321-355, 1988.
+\bibitem{b23} X. Gu, P. P. Angelov, D. Kangin, and J. C. Principe, “A new type of distance metric and its use for clustering,” \textit{Evolving Systems}, vol. 8, no. 3, pp. 167-177, Sep. 2017.
+\bibitem{b24} X. Gu, P. P. Angelov, D. Kangin, and J. C. Principe, “A new type of distance metric and its use for clustering,” \textit{Evolving Systems}, vol. 8, no. 3, pp. 167-177, Sep. 2017.
+\bibitem{b25} C. C. Aggarwal, A. Hinneburg, and D. A. Keim, “On the surprising behavior of distance metrics in high dimensional space,” in \textit{International Conference on Database Theory}, 2001, pp. 420-434.
 \bibitem{b26} M. de Berg, O. Cheong, M. van Kreveld, and M. Overmars, \textit{Computational Geometry: Algorithms and Applications}, 3rd ed. Berlin, Heidelberg: Springer-Verlag, 2008.
 \bibitem{b27} S. Boyd and L. Vandenberghe, \textit{Convex Optimization}. Cambridge, UK: Cambridge University Press, 2004.
 \bibitem{b28} G. M. Ziegler, \textit{Lectures on Polytopes}. New York: Springer-Verlag, 1995.
-\bibitem{b29} B. Chazelle, “An optimal algorithm for intersecting three-dimensional convex polyhedra,” \textit{SIAM Journal on Computing}, vol. 22, no. 6, pp. 1271–1288, 1993.
+\bibitem{b29} B. Chazelle, “An optimal algorithm for intersecting three-dimensional convex polyhedra,” \textit{SIAM Journal on Computing}, vol. 22, no. 6, pp. 1271-1288, 1993.
 \bibitem{b30} J. O'Rourke, \textit{Computational Geometry in C}, 2nd ed. Cambridge, UK: Cambridge University Press, 1998.
-\bibitem{b31} D. M. J. Tax and R. P. W. Duin, “Support vector data description,” \textit{Machine Learning}, vol. 54, no. 1, pp. 45–66, 2004.
-\bibitem{b32} G. I. Nalbantov, J. C. Bioch, and F. C. A. Groen, “Nearest convex hull classification,” \textit{Pattern Recognition}, vol. 40, no. 4, pp. 1342–1353, Apr. 2007.
-\bibitem{b33} F. Ecer, “A novel anomaly detection method based on convex hull,” \textit{Engineering Science and Technology, an International Journal}, vol. 24, no. 5, pp. 1148–1156, 2021.
-\bibitem{b34} R. A. Fisher, “The use of multiple measurements in taxonomic problems,” \textit{Annals of Eugenics}, vol. 7, no. 2, pp. 179–188, 1936.
+\bibitem{b31} D. M. J. Tax and R. P. W. Duin, “Support vector data description,” \textit{Machine Learning}, vol. 54, no. 1, pp. 45-66, 2004.
+\bibitem{b32} G. I. Nalbantov, J. C. Bioch, and F. C. A. Groen, “Nearest convex hull classification,” \textit{Pattern Recognition}, vol. 40, no. 4, pp. 1342-1353, Apr. 2007.
+\bibitem{b33} F. Ecer, “A novel anomaly detection method based on convex hull,” \textit{Engineering Science and Technology, an International Journal}, vol. 24, no. 5, pp. 1148-1156, 2021.
+\bibitem{b34} R. A. Fisher, “The use of multiple measurements in taxonomic problems,” \textit{Annals of Eugenics}, vol. 7, no. 2, pp. 179-188, 1936.
 \bibitem{b35} K. Fukunaga, \textit{Introduction to Statistical Pattern Recognition}, 2nd ed. San Diego, CA: Academic Press, 1990.
 \bibitem{b36} R. O. Duda, P. E. Hart, and D. G. Stork, \textit{Pattern Classification}, 2nd ed. New York: Wiley-Interscience, 2000.
-\bibitem{b37} W. Liu, Y. Wen, Z. Yu, and M. Yang, “Large-margin softmax loss for convolutional neural networks,” in \textit{Proceedings of the 33rd International Conference on Machine Learning}, 2016, pp. 507–516.
-\bibitem{b38} P. J. Rousseeuw, “Silhouettes: a graphical aid to the interpretation and validation of cluster analysis,” \textit{Journal of Computational and Applied Mathematics}, vol. 20, pp. 53–65, Nov. 1987.
+\bibitem{b37} W. Liu, Y. Wen, Z. Yu, and M. Yang, “Large-margin softmax loss for convolutional neural networks,” in \textit{Proceedings of the 33rd International Conference on Machine Learning}, 2016, pp. 507-516.
+\bibitem{b38} P. J. Rousseeuw, “Silhouettes: a graphical aid to the interpretation and validation of cluster analysis,” \textit{Journal of Computational and Applied Mathematics}, vol. 20, pp. 53-65, Nov. 1987.
 \bibitem{b39} L. Kaufman and P. J. Rousseeuw, \textit{Finding Groups in Data: An Introduction to Cluster Analysis}. Hoboken, NJ: John Wiley \& Sons, 2005.
-\bibitem{b40} P. J. Rousseeuw, “Silhouettes: a graphical aid to the interpretation and validation of cluster analysis,” \textit{Journal of Computational and Applied Mathematics}, vol. 20, pp. 53–65, Nov. 1987.
-\bibitem{b41} C. Cortes and V. Vapnik, “Support-vector networks,” \textit{Machine Learning}, vol. 20, pp. 273–297, 1995.
+\bibitem{b40} P. J. Rousseeuw, “Silhouettes: a graphical aid to the interpretation and validation of cluster analysis,” \textit{Journal of Computational and Applied Mathematics}, vol. 20, pp. 53-65, Nov. 1987.
+\bibitem{b41} C. Cortes and V. Vapnik, “Support-vector networks,” \textit{Machine Learning}, vol. 20, pp. 273-297, 1995.
 \bibitem{b42} B. Schölkopf and A. J. Smola, \textit{Learning with Kernels: Support Vector Machines, Regularization, Optimization, and Beyond}. Cambridge, MA: MIT Press, 2002.
 \bibitem{b43} N. Cristianini and J. Shawe-Taylor, \textit{An Introduction to Support Vector Machines and Other Kernel-based Learning Methods}. Cambridge, UK: Cambridge University Press, 2000.
-\bibitem{b44} B. Shahriari, K. Swersky, Z. Wang, R. P. Adams, and N. de Freitas, “Taking the human out of the loop: A review of Bayesian optimization,” \textit{Proceedings of the IEEE}, vol. 104, no. 1, pp. 148–175, Jan. 2016.
-\bibitem{b45} J. Snoek, H. Larochelle, and R. P. Adams, “Practical Bayesian optimization of machine learning algorithms,” in \textit{Advances in Neural Information Processing Systems 25}, 2012, pp. 2951–2959.
+\bibitem{b44} B. Shahriari, K. Swersky, Z. Wang, R. P. Adams, and N. de Freitas, “Taking the human out of the loop: A review of Bayesian optimization,” \textit{Proceedings of the IEEE}, vol. 104, no. 1, pp. 148-175, Jan. 2016.
+\bibitem{b45} J. Snoek, H. Larochelle, and R. P. Adams, “Practical Bayesian optimization of machine learning algorithms,” in \textit{Advances in Neural Information Processing Systems 25}, 2012, pp. 2951-2959.
 \bibitem{b46} P. I. Frazier, “A tutorial on Bayesian optimization,” \textit{arXiv preprint arXiv:1807.02811}, 2018.
-\bibitem{b47} J. Mockus, “On the application of Bayesian methods for seeking the extremum,” in \textit{Towards Global Optimization 2}, L. C. W. Dixon and G. P. Szegö, Eds. Amsterdam: North-Holland, 1978, pp. 117–129.
-\bibitem{b48} D. R. Jones, M. Schonlau, and W. J. Welch, “Efficient global optimization of expensive black-box functions,” \textit{Journal of Global Optimization}, vol. 13, no. 4, pp. 455–492, 1998.
-\bibitem{b49} J. Mockus, “On Bayesian methods for seeking the extremum,” in \textit{Optimization Techniques IFIP Technical Conference, Novosibirsk, July 1–7, 1974}, G. I. Marchuk, Ed. Berlin, Heidelberg: Springer, 1975, pp. 400–404.
-\bibitem{b50} D. R. Jones, M. Schonlau, and W. J. Welch, “Efficient global optimization of expensive black-box functions,” \textit{Journal of Global Optimization}, vol. 13, no. 4, pp. 455–492, 1998.
-\bibitem{b51} D. R. Jones, M. Schonlau, and W. J. Welch, “Efficient global optimization of expensive black-box functions,” \textit{Journal of Global Optimization}, vol. 13, no. 4, pp. 455–492, 1998.
-\bibitem{b52} D. R. Jones, M. Schonlau, and W. J. Welch, “Efficient global optimization of expensive black-box functions,” \textit{Journal of Global Optimization}, vol. 13, no. 4, pp. 455–492, 1998.
+\bibitem{b47} J. Mockus, “On the application of Bayesian methods for seeking the extremum,” in \textit{Towards Global Optimization 2}, L. C. W. Dixon and G. P. Szegö, Eds. Amsterdam: North-Holland, 1978, pp. 117-129.
+\bibitem{b48} D. R. Jones, M. Schonlau, and W. J. Welch, “Efficient global optimization of expensive black-box functions,” \textit{Journal of Global Optimization}, vol. 13, no. 4, pp. 455-492, 1998.
+\bibitem{b49} J. Mockus, “On Bayesian methods for seeking the extremum,” in \textit{Optimization Techniques IFIP Technical Conference, Novosibirsk, July 1-7, 1974}, G. I. Marchuk, Ed. Berlin, Heidelberg: Springer, 1975, pp. 400-404.
+\bibitem{b50} D. R. Jones, M. Schonlau, and W. J. Welch, “Efficient global optimization of expensive black-box functions,” \textit{Journal of Global Optimization}, vol. 13, no. 4, pp. 455-492, 1998.
+\bibitem{b51} D. R. Jones, M. Schonlau, and W. J. Welch, “Efficient global optimization of expensive black-box functions,” \textit{Journal of Global Optimization}, vol. 13, no. 4, pp. 455-492, 1998.
+\bibitem{b52} D. R. Jones, M. Schonlau, and W. J. Welch, “Efficient global optimization of expensive black-box functions,” \textit{Journal of Global Optimization}, vol. 13, no. 4, pp. 455-492, 1998.
 \bibitem{b53} V. Lohweg, “Banknote Authentication Data Set,” UCI Machine Learning Repository. [Online]. Available: \url{https://archive.ics.uci.edu/ml/datasets/banknote+authentication}
 \bibitem{b54} D. Dua and C. Graff, “UCI Machine Learning Repository,” Irvine, CA: University of California, School of Information and Computer Sciences, 2017. [Online]. Available: \url{http://archive.ics.uci.edu/ml}
 \bibitem{b55} W. H. Wolberg, W. N. Street, and O. L. Mangasarian, "Breast Cancer Wisconsin (Diagnostic) Data Set," UCI Machine Learning Repository. [Online]. Available: \url{https://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+(Diagnostic)}
-\bibitem{b56} M. Bohanec and V. Rajkovic, “Expert system for decision making,” \textit{Sistemica}, vol. 1, no. 1, pp. 145–157, 1990.
+\bibitem{b56} M. Bohanec and V. Rajkovic, “Expert system for decision making,” \textit{Sistemica}, vol. 1, no. 1, pp. 145-157, 1990.
 \bibitem{b57} H. Hofmann, "Statlog (German Credit Data) Data Set," UCI Machine Learning Repository. [Online]. Available: \url{https://archive.ics.uci.edu/ml/datasets/statlog+(german+credit+data)}
 \bibitem{b58} "Pima Indians Diabetes Database," National Institute of Diabetes and Digestive and Kidney Diseases. Sourced from UCI Machine Learning Repository. [Online]. Available: \url{https://archive.ics.uci.edu/ml/datasets/pima+indians+diabetes}
 \bibitem{b59} "Statlog (Heart) Data Set," UCI Machine Learning Repository. [Online]. Available: \url{https://archive.ics.uci.edu/ml/datasets/statlog+(heart)}
-\bibitem{b60} V. G. Sigillito, S. P. Wing, L. V. Hutton, and K. B. Baker, “Classification of radar returns from the ionosphere using neural networks,” \textit{Johns Hopkins APL Technical Digest}, vol. 10, no. 3, pp. 262–266, 1989.
-\bibitem{b61} R. A. Fisher, “The use of multiple measurements in taxonomic problems,” \textit{Annals of Eugenics}, vol. 7, no. 2, pp. 179–188, 1936.
+\bibitem{b60} V. G. Sigillito, S. P. Wing, L. V. Hutton, and K. B. Baker, “Classification of radar returns from the ionosphere using neural networks,” \textit{Johns Hopkins APL Technical Digest}, vol. 10, no. 3, pp. 262-266, 1989.
+\bibitem{b61} R. A. Fisher, “The use of multiple measurements in taxonomic problems,” \textit{Annals of Eugenics}, vol. 7, no. 2, pp. 179-188, 1936.
 \bibitem{b62} S. B. Thrun et al., “The MONK's Problems: A performance comparison of different learning algorithms,” Technical Report CS-CMU-91-197, Carnegie Mellon University, Dec. 1991.
 \bibitem{b63} J. S. Schlimmer, “Concept acquisition through representational adjustment,” Ph.D. dissertation, Dept. of Information and Computer Science, University of California, Irvine, 1987.
 \bibitem{b64} “Phoneme Dataset,” OpenML, ID 1489. [Online]. Available: \url{https://www.openml.org/d/1489}
 \bibitem{b65} M. Hopkins, E. Reeber, G. Forman, and J. Suermondt, “Spambase Dataset,” UCI Machine Learning Repository, 1999. [Online]. doi: 10.24432/C53G6X.
-\bibitem{b66} L. F. Cranor and B. A. LaMacchia, “Spam!,” \textit{Communications of the ACM}, vol. 41, no. 8, pp. 74–83, Aug. 1998.
+\bibitem{b66} L. F. Cranor and B. A. LaMacchia, “Spam!,” \textit{Communications of the ACM}, vol. 41, no. 8, pp. 74-83, Aug. 1998.
 \bibitem{b67} “Titanic: Machine Learning from Disaster,” Kaggle. [Online]. Available: \url{https://www.kaggle.com/c/titanic/data}. (Original data from Dept. of Biostatistics, Vanderbilt University).
 \bibitem{b68} S. Aeberhard and M. Forina, “Wine Dataset,” UCI Machine Learning Repository, 1991. [Online]. doi: 10.24432/C5PC7J.
-\bibitem{b69} S. Aeberhard, D. Coomans, and O. de Vel, “Comparative analysis of statistical pattern recognition methods in high dimensional settings,” \textit{Pattern Recognition}, vol. 27, no. 8, pp. 1065–1077, 1994.
+\bibitem{b69} S. Aeberhard, D. Coomans, and O. de Vel, “Comparative analysis of statistical pattern recognition methods in high dimensional settings,” \textit{Pattern Recognition}, vol. 27, no. 8, pp. 1065-1077, 1994.
 \bibitem{b70} K. Nakai, “Yeast Dataset,” UCI Machine Learning Repository, 1996. [Online]. doi: 10.24432/C5KG68.
-\bibitem{b71} K. Nakai and P. Horton, “A new method for predicting sorting signals in proteins from their amino acid sequences,” in \textit{Proceedings of the Fourth International Conference on Intelligent Systems for Molecular Biology}, 1996, pp. 146–155.
+\bibitem{b72} M. V. F. Menezes, L. C. B. Torres, and A. P. Braga, “Width optimization of RBF kernels for binary classification of support vector machines: A density estimation-based approach,” \textit{Pattern Recognition Letters}, vol. 128, pp. 1-7, 2019.
 \end{thebibliography}
 
 \end{document}
