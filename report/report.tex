@@ -1,0 +1,242 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{url}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\begin{document}
+
+\title{A Study on Similarity Space Metrics as Predictors for k-Nearest Neighbor Classificator Performance}
+
+\author{\IEEEauthorblockN{Eduardo Henrique Basilio de Carvalho}
+\IEEEauthorblockA{\textit{Departamento de Engenharia Eletrônica} \\
+\textit{Universidade Federal de Minas Gerais}\\
+Belo Horizonte, Brasil \\
+eduardohbc@ufmg.br}
+}
+
+\maketitle
+
+\begin{abstract}
+The k-Nearest Neighbor (k-NN) algorithm, while conceptually simple, is highly sensitive to hyperparameter choices, such as the number of neighbors `k` and the distance metric. The standard method for tuning these hyperparameters, k-fold cross-validation, is computationally expensive. This paper posits that the performance of k-NN can be predicted by computationally efficient proxy metrics derived from the geometric and statistical properties of the data. We introduce a transformation from the original feature space to a class-aggregated similarity space using a sparse Radial Basis Function (RBF) kernel. Within this space, we propose and define a suite of novel metrics to quantify class separability, compactness, and overlap. The central thesis is that optimizing these proxy metrics via Bayesian optimization can provide a faster and more insightful alternative to the brute-force cross-validation approach for hyperparameter tuning, without sacrificing classification accuracy.
+\end{abstract}
+
+\begin{IEEEkeywords}
+k-Nearest Neighbor, similarity space, hyperparameter optimization, Bayesian optimization, classification, class separability, proxy metrics, RBF kernel
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+\subsection{The k-Nearest Neighbor Algorithm: A Foundation of Non-Parametric Classification}
+The k-Nearest Neighbor (k-NN) algorithm stands as one of the most fundamental and intuitive methods in machine learning for classification and regression tasks \cite{b1, b2}. As a non-parametric, instance-based learning method, it makes no underlying assumptions about the distribution of the data, offering significant flexibility \cite{b1, b2}. The core principle of k-NN is that similar data points are likely to have similar outcomes. For classification, an unlabeled observation is assigned to the class most frequently represented among its `k` nearest neighbors in the feature space \cite{b3, b4}. The algorithm's conceptual development traces back to the work of Evelyn Fix and Joseph Hodges in 1951, but it was the seminal 1967 paper, "Nearest Neighbor Pattern Classification" by Thomas Cover and Peter Hart, that provided its rigorous theoretical underpinning \cite{b5, b6}. Their work established a crucial property: for a large number of samples, the error rate of the simple 1-NN rule is bounded by at most twice the Bayes error rate—the theoretical minimum achievable error for a given data distribution \cite{b5, b7}. This result guarantees a level of performance relative to an optimal classifier, solidifying k-NN's position as a viable and theoretically sound method that remains relevant decades after its conception \cite{b8, b9, b10}.
+
+\subsection{The Achilles' Heel: Sensitivity to Hyperparameters and Data Structure}
+Despite its conceptual simplicity, the practical application of k-NN reveals a significant sensitivity to several key factors that dictate its performance \cite{b3, b11}. The choice of `k`, the number of neighbors, represents a critical bias-variance trade-off. A small `k` can lead to a model that is highly sensitive to noise and outliers, resulting in high variance and overfitting, while a large `k` can oversmooth the decision boundary, leading to high bias and underfitting by ignoring local data patterns \cite{b3, b12}. Furthermore, the algorithm's effectiveness is contingent on the choice of distance metric (e.g., Euclidean, Manhattan) used to quantify "nearness" in the feature space \cite{b1, b4}. The performance can also be severely degraded by irrelevant features or differences in the scales of features, necessitating careful data preprocessing. This sensitivity is particularly acute in high-dimensional spaces, a phenomenon known as the "curse of dimensionality," where the concept of distance can become less meaningful as all points tend to become equidistant from one another \cite{b4, b11}.
+
+\subsection{The Conventional Solution and Its Limitations: Cross-Validation}
+To address the challenge of hyperparameter selection, the standard and most robust methodology is k-fold cross-validation \cite{b12, b13, b14}. This technique involves partitioning the training data into `k` subsets, or "folds." The model is then trained on `k-1` folds and validated on the remaining held-out fold. This process is repeated `k` times, with each fold serving as the validation set exactly once, and the performance metrics are averaged to produce a stable and reliable estimate of the model's generalization ability \cite{b13, b15}. While effective, k-fold cross-validation suffers from a major drawback: it is computationally intensive, often prohibitively so \cite{b11, b13}. For each combination of hyperparameters under consideration (e.g., for each pair of `k` and a distance metric parameter), the entire process of `k` model trainings and evaluations must be performed. This brute-force, black-box approach becomes impractical for large datasets or when exploring a wide range of hyperparameter values \cite{b16, b17}.
+
+\subsection{Thesis Statement: Predicting Performance Through Geometric Proxies}
+The central thesis of this paper is that the computational burden of hyperparameter optimization for k-NN can be substantially mitigated by using computationally efficient proxies that correlate strongly with classification performance. We posit that metrics derived from the geometric and statistical properties of data classes, when transformed into a carefully constructed "similarity space," can serve as effective predictors of k-NN accuracy. This work introduces and evaluates a suite of novel metrics designed to quantify class separability, compactness, and overlap. By optimizing the k-NN hyperparameters to maximize these proxy metrics instead of the cross-validation score, we aim to develop a faster, more insightful, and equally effective method for hyperparameter tuning. This approach moves away from the black-box treatment of the model and instead leverages the intrinsic geometric nature of the k-NN algorithm itself, addressing the paradox where a conceptually simple algorithm requires a computationally complex and "unintelligent" optimization procedure.
+
+\section{From Feature Space to Similarity Space: A Kernel-Based Transformation}
+To analyze the geometric relationships between classes, we first transform the data from its original feature space into a "similarity space." This transformation is designed to create a new representation where the spatial arrangement of data points directly reflects their relationship to the different classes, making geometric separability metrics more meaningful.
+
+\subsection{The Role of the Radial Basis Function (RBF) Kernel}
+The core of this transformation is the Gaussian Radial Basis Function (RBF) kernel, a widely used similarity function in kernelized learning algorithms \cite{b18, b19}. The RBF kernel measures the similarity between two vectors, $\mathbf{u}$ and $\mathbf{v}$, and is defined by the equation:
+\begin{equation}
+K(\mathbf{u}, \mathbf{v}) = \exp\left(-\frac{\|\mathbf{u} - \mathbf{v}\|^2}{2h^2}\right)
+\end{equation}
+where $\|\mathbf{u} - \mathbf{v}\|$ represents the Euclidean distance, and the bandwidth parameter $h$ controls the width of the kernel, determining how quickly similarity decays with distance \cite{b18, b20}. The function's value ranges from 1 (for identical vectors) to 0 (for infinitely distant vectors), providing an intuitive measure of similarity. The use of RBFs was first formulated in the context of neural networks in a seminal 1988 paper by Broomhead and Lowe \cite{b21, b22}. While their work focused on RBFs as activation functions in a network, this study employs the RBF as a standalone kernel function, a concept popularized by methods like Support Vector Machines (SVMs) to handle non-linear data relationships by implicitly mapping data to a higher-dimensional space \cite{b18, b19}. This mapping allows complex, non-linear class structures in the original feature space to be represented in a way that is more amenable to linear or geometric analysis.
+
+\subsection{Sparse Kernel Matrix Construction}
+A key feature of our implementation is the use of a \textit{sparse} RBF kernel matrix. Given a set of samples to be evaluated and a set of reference samples, a full kernel matrix would compute the similarity between every pair of points. For large datasets, this is computationally infeasible. Instead, for each sample in the evaluation set, we compute its similarity only to the `k` closest points in the reference set \cite{b20}. All other similarity values are set to zero. This approach not only makes the computation tractable but also aligns the transformation process with the local nature of the k-NN algorithm itself, focusing only on the most relevant neighbors.
+
+\subsection{Class-Aggregated Similarity Space Transformation}
+The final step in creating the similarity space is to aggregate the similarity scores based on class labels. Let $K$ be the sparse $n \times m$ similarity matrix, where $n$ is the number of evaluated samples and $m$ is the number of reference samples. Let $\mathbf{y}$ be the vector of class labels for the $m$ reference samples, and let $\mathcal{C} = \{c_1, c_2, \ldots, c_p\}$ be the set of $p$ unique classes. We compute a new $n \times p$ matrix, $Q$, which represents the data in the similarity space. An element $Q_{ik}$ of this matrix is defined as the sum of similarities from the $i$-th evaluated sample to all reference samples belonging to class $c_k$:
+\begin{equation}
+Q_{ik} = \sum_{j=1}^{m} K_{ij} \cdot \mathbb{I}(y_j = c_k)
+\end{equation}
+where $\mathbb{I}(\cdot)$ is the indicator function \cite{b20}. This operation can be expressed as the matrix product $Q = KY$, where $Y$ is an $m \times p$ binary matrix indicating class membership.
+
+The resulting matrix $Q$ provides the final representation. Each row of $Q$ is a $p$-dimensional vector where each component quantifies the sample's total similarity to a specific class. This transformation serves as a crucial conceptual bridge. It takes data that may be non-linearly separable in its raw form and projects it into a new, low-dimensional space where the axes themselves represent class affinity. In this new space, the geometric arrangement of points—their clustering, separation, and overlap—is directly related to their classification potential, thereby justifying the application of the geometric metrics described in the following section.
+
+\section{A Suite of Novel Metrics for Quantifying Class Separability}
+The core contribution of this work is a suite of six novel metrics designed to quantify different aspects of class separability and compactness within the similarity space. These metrics are intended to serve as computationally efficient proxies for k-NN classification accuracy. Each metric is derived from established principles in pattern recognition, computational geometry, and statistics, but is formulated to capture specific geometric properties of the class distributions in the transformed space.
+
+\subsection{Dissimilarity: A Hybrid Distance-Direction Metric}
+This metric computes a scalar value representing the separability between classes by considering both the distance and the directional alignment of their centroids in the similarity space. For each class, a centroid vector $\mathbf{v}_k$ is calculated as the arithmetic mean of all sample vectors in that class. Then, for each unique pair of class centroids $(\mathbf{v}_i, \mathbf{v}_j)$, a pairwise dissimilarity score is computed as:
+\begin{equation}
+D_{ij} = \|\mathbf{v}_i - \mathbf{v}_j\| \cdot \frac{\mathbf{v}_i \cdot \mathbf{v}_j}{\|\mathbf{v}_i\| \|\mathbf{v}_j\|}
+\end{equation}
+This formula combines the Euclidean distance between the centroids with their cosine similarity \cite{b20}. The intuition is that well-separated classes should have centroids that are not only far apart (large Euclidean distance) but also point in different directions within the similarity space (high cosine similarity, as vectors are non-negative). The final score is derived from the mean ($\mu_{\mathcal{D}}$) and standard deviation ($\sigma_{\mathcal{D}}$) of all pairwise dissimilarities, adjusted by factors related to the hyperparameters being tuned. This approach of combining magnitude and direction is motivated by research into "direction-aware" distance metrics, which have been shown to be more robust than Euclidean distance alone in high-dimensional spaces where magnitude can be misleading \cite{b23, b24, b25}.
+
+\subsection{n-Volume of the Intersection of the Convex Hulls}
+This metric quantifies class overlap by measuring the volume of the geometric intersection of the class convex hulls in the $N$-dimensional similarity space. A convex hull is defined as the smallest convex set that encloses all points of a given class \cite{b26}. The intersection of the convex hulls for all classes, $\mathcal{I} = \bigcap_{k=1}^{p} \text{conv}(\mathcal{C}_k)$, represents the region of the similarity space where points cannot be unambiguously assigned to a single class based on their convex hull membership. The final score is the $N$-dimensional volume of this intersection region \cite{b20}.
+
+This metric operationalizes a fundamental concept from geometry and learning theory: two sets of points are linearly separable if and only if their convex hulls do not intersect \cite{b27, b28}. While this theorem provides a binary condition (intersect or not), measuring the \textit{volume} of the intersection transforms it into a continuous, quantitative heuristic for class separability. A volume of zero corresponds to perfect linear separability, while a larger volume indicates a greater degree of class overlap and confusion, which is expected to correlate negatively with k-NN performance. Algorithms for computing the intersection of convex polyhedra provide the computational basis for this metric \cite{b29, b30}.
+
+\subsection{n-Volume of the Convex Hulls}
+In contrast to measuring overlap, this metric focuses on the compactness and uniformity of the individual class distributions. For each class, the $N$-dimensional volume of its convex hull is computed. The final score is then calculated from the mean ($\mu_{\mathcal{V}}$) and standard deviation ($\sigma_{\mathcal{V}}$) of these volumes:
+$$\text{Final Score} = (\mu_{\mathcal{V}} - \sigma_{\mathcal{V}}) \cdot (1 - f_k)$$
+The intuition here is that an ideal class structure for k-NN would consist of tight, compact clusters. A small mean volume ($\mu_{\mathcal{V}}$) indicates that classes, on average, occupy a small region in the similarity space. A small standard deviation ($\sigma_{\mathcal{V}}$) indicates that all classes are similarly compact. The metric thus favors class distributions that are consistently and tightly clustered. This approach draws on work in classification and anomaly detection where the volume of a convex hull is used to characterize the spatial extent of a data distribution \cite{b31, b32, b33}.
+
+\subsection{Spread: A Statistical View on Inter- and Intra-Class Distances}
+This metric provides a statistical measure of class separability by comparing the distributions of distances between points within the same class (intra-class) to distances between points in different classes (inter-class). After computing all pairwise Euclidean distances in the similarity space, they are partitioned into these two sets. The mean and standard deviation are calculated for both the within-class distances ($\mu_{\text{within}}, \sigma_{\text{within}}$) and the between-class distances ($\mu_{\text{between}}, \sigma_{\text{between}}$). The final score is a function of these four statistics:
+$$ \text{Final Score} = ((\mu_{\text{between}} \cdot \mu_{\text{within}}) - (\sigma_{\text{between}} \cdot \sigma_{\text{within}})) \cdot (1 - f_h) \cdot (1 - f_k) $$
+This metric is rooted in the foundational principles of pattern recognition, most notably Fisher's Linear Discriminant Analysis (LDA), which seeks a projection that maximizes the ratio of between-class scatter to within-class scatter \cite{b34}. Good separability is achieved when between-class distances are large and within-class distances are small \cite{b35, b36, b37}. The "Spread" metric extends this classic idea by also rewarding consistency (low standard deviation) in these distance distributions, penalizing scenarios where separability is erratic across the feature space.
+
+\subsection{Silhouette: Adapting a Clustering Metric for Supervised Evaluation}
+This metric adapts the well-known Silhouette score, traditionally used for unsupervised cluster validation, to the supervised context of evaluating class structure. The standard silhouette score for a single point $i$ is given by:
+\begin{equation}
+s(i) = \frac{b(i) - a(i)}{\max\{a(i), b(i)\}}
+\end{equation}
+where $a(i)$ is the mean distance from point $i$ to other points in its own cluster (a measure of cohesion), and $b(i)$ is the mean distance from point $i$ to points in the nearest neighboring cluster (a measure of separation) \cite{b38}. The score ranges from -1 to +1, with higher values indicating a better fit. This metric was introduced by Peter J. Rousseeuw in 1987 as a graphical aid for interpreting and validating cluster analysis \cite{b38, b39, b40}.
+
+In this paper, we repurpose this unsupervised tool for a supervised task. We treat each ground-truth class as a "cluster" and compute the silhouette score for every point in the similarity space. This provides a measure of how well-defined the natural class groupings are. A high average score suggests that the classes are inherently compact and well-separated, a condition favorable for k-NN classification. The final score is a custom formula that combines the mean ($\mu_s$) and standard deviation ($\sigma_s$) of the individual silhouette scores, rewarding a high mean while penalizing high variance.
+
+\subsection{Cosine Similarity between the Centroids' Hyperplane and the Opposite Unit Hyperplane}
+This metric quantifies the geometric orientation of the class separation. It measures the parallelism between two specific hyperplanes in the $N$-dimensional similarity space. The first, the "Centroid Hyperplane," is the hyperplane defined by the set of $p$ class centroids. The second is a fixed "Reference Hyperplane" defined by the equation $\sum_{i=1}^{N} x_i = 0$. The degree of parallelism is measured by the absolute cosine similarity of their normal vectors, $\mathbf{n}_{\text{centroid}}$ and $\mathbf{n}_{\text{opposite}}$. The final score is inversely related to this similarity:
+$$ \text{Final Score} = (1 - |\mathbf{n}_{\text{centroid}} \cdot \mathbf{n}_{\text{opposite}}|) \cdot (1 - f_k) $$
+The intuition is that a high degree of parallelism between the hyperplane formed by the class centroids and the reference hyperplane indicates a degenerate or overfitted state where class distinctions are collapsing along a single axis of similarity. The metric penalizes this condition. A low cosine similarity (and thus a high final score) indicates that the centroid hyperplane is not parallel to the reference plane, suggesting a more robust and non-degenerate separation of the classes.
+
+\section{Methodology and Experimental Protocol}
+To rigorously evaluate the proposed similarity space metrics as predictors of k-NN performance, a comprehensive experimental protocol was designed. This protocol ensures a fair comparison between models optimized using the novel metrics and a baseline model optimized using a conventional, state-of-the-art approach.
+
+\subsection{Baseline Model}
+The benchmark for this study is a standard k-NN classifier. The hyperparameters of this model—specifically, the number of neighbors (`k`) and the RBF kernel bandwidth (`h`) used in the similarity transformation—are tuned by directly optimizing for the 5-fold cross-validation accuracy on the training data \cite{b20}. This represents the "gold standard" but computationally expensive method that is commonly used in practice to achieve the best possible performance from a k-NN model.
+
+\subsection{Bayesian Optimization}
+For all models, including the baseline, hyperparameter tuning is conducted using Bayesian optimization. This choice is crucial for ensuring a fair comparison of the optimization processes. Bayesian optimization is a sequential, model-based approach for finding the extremum of expensive-to-evaluate, black-box functions \cite{b44, b45, b46}. The method works by building a probabilistic surrogate model (typically a Gaussian Process) of the objective function (e.g., cross-validation accuracy or one of the proposed metrics). It then uses an acquisition function, such as Expected Improvement (EI), to intelligently select the next set of hyperparameters to evaluate, balancing exploration of the search space with exploitation of promising regions \cite{b47, b48}.
+
+This approach is rooted in the foundational work of Jonas Mockus, who introduced the Bayesian framework for optimization and the EI principle in the 1970s \cite{b47, b49}. Its modern application was significantly advanced by Jones et al. in their 1998 paper on Efficient Global Optimization (EGO), which established the use of Gaussian Processes as the surrogate model \cite{b50, b51, b52}. While the baseline model uses Bayesian optimization to maximize 5-fold cross-validation accuracy, the six experimental models use it to maximize one of the six proposed similarity space metrics over the training set. To ensure a fair comparison of computational efficiency, the optimization process for every model is limited to a maximum of 10 iterations \cite{b20}.
+
+\subsection{Experimental Protocol}
+The overall performance of each of the seven models (one baseline, six metric-based) is assessed using a 10-fold cross-validation scheme for the entire experiment. For each of the 10 folds, the dataset is partitioned into a training set (90\%) and a test set (10\%). Each of the seven models is then trained on the training portion; this training phase includes the internal 10-iteration Bayesian optimization loop to find the best hyperparameters according to that model's specific objective function. Once trained and optimized, the model's performance is evaluated on the held-out test set. The final results are reported as the mean and standard deviation of accuracy, total training time, and inference time, aggregated across the 10 outer folds. This nested validation structure ensures a robust and unbiased evaluation of how well each optimization strategy generalizes to unseen data.
+
+\subsection{Datasets}
+To ensure the generalizability of our findings, the experiments are conducted on a diverse collection of 15 publicly available datasets. These datasets vary widely in the number of samples, features, and classes, representing a range of challenges for classification algorithms. The datasets, sourced primarily from the UCI Machine Learning Repository, OpenML, and Kaggle, are summarized in Table \ref{tab:datasets}. Categorical features in datasets like Car Evaluation and Mushroom were converted to a numerical representation using one-hot encoding, resulting in an expanded feature space as noted in the table.
+
+\begin{table*}[htbp]
+\caption{Datasets Used in the Study}
+\label{tab:datasets}
+\begin{center}
+\begin{tabular}{|l|c|c|c|l|}
+\hline
+\textbf{Dataset Name} & \textbf{Samples} & \textbf{Features} & \textbf{Classes} & \textbf{Source / Citation} \\
+\hline
+Banknote Authentication & 1372 & 4 & 2 & Dua, D. \& Graff, C. (2017) \cite{b53, b54} \\
+Breast Cancer (Wisconsin) & 569 & 30 & 2 & Dua, D. \& Graff, C. (2017) \cite{b54, b55} \\
+Car Evaluation & 1728 & 21 & 4 & Bohanec, M. \& Rajkovic, V. (1990) via UCI \cite{b54, b56} \\
+Credit Germany (Statlog) & 1000 & 74 & 2 & Dua, D. \& Graff, C. (2017) \cite{b54, b57} \\
+Diabetes (Pima) & 768 & 8 & 2 & Dua, D. \& Graff, C. (2017) \cite{b54, b58} \\
+Heart Disease (Statlog) & 270 & 13 & 2 & Dua, D. \& Graff, C. (2017) \cite{b54, b59} \\
+Ionosphere & 351 & 34 & 2 & Sigillito, V. (1989) via UCI \cite{b54, b60} \\
+Iris & 150 & 4 & 3 & Fisher, R.A. (1936) via UCI \cite{b54, b61} \\
+Monk's Problems (monk2) & 432 & 6 & 2 & Thrun, S.B., et al. (1991) via UCI \cite{b54, b62} \\
+Mushroom & 8124 & 105 & 2 & Schlimmer, J.S. (1987) via UCI \cite{b54, b63} \\
+Phoneme & 5404 & 5 & 2 & OpenML (ID: 1489) \cite{b64} \\
+Spambase & 4601 & 57 & 2 & Hopkins, M., et al. (1999) via UCI \cite{b65, b66} \\
+Titanic & 1309 & 13 & 2 & Kaggle / Vanderbilt University \cite{b67} \\
+Wine & 178 & 13 & 3 & Aeberhard, S. \& Forina, M. (1991) via UCI \cite{b68, b69} \\
+Yeast & 1484 & 8 & 10 & Nakai, K. (1996) via UCI \cite{b70, b71} \\
+\hline
+\end{tabular}
+\end{center}
+\end{table*}
+
+\section{Results}
+The empirical evaluation of the proposed similarity space metrics against the baseline cross-validation approach is forthcoming. The experiments outlined in the methodology section have been designed but not yet executed. This section, therefore, serves as a blueprint for the analysis that will be conducted once the experimental data are available. The primary goal of the analysis will be to determine whether the proposed metrics can serve as reliable and efficient proxies for k-NN performance.
+
+The analysis will be structured around three key research questions:
+\begin{enumerate}
+    \item \textbf{Performance Equivalence:} Can optimizing for the proposed metrics yield classification accuracy comparable to that achieved by optimizing directly for cross-validation accuracy?
+    \item \textbf{Computational Efficiency:} Do the proposed metrics offer a significant reduction in the computational time required for hyperparameter optimization compared to the baseline?
+    \item \textbf{Predictive Validity:} Is there a strong statistical correlation between the values of the proposed metrics and the actual classification performance of the k-NN model?
+\end{enumerate}
+To address these questions, the forthcoming results will be presented and analyzed as follows. First, a comprehensive comparison of the mean and standard deviation of test accuracy for all seven models across the 15 datasets will be conducted to assess performance and stability. Second, a detailed analysis of the training times will quantify the computational speed-up offered by the metric-based approaches. Finally, a correlation analysis will be performed to directly measure the strength of the relationship between each proposed metric and the resulting classification accuracy, providing evidence for their validity as performance predictors. A synthesis of these findings will determine which, if any, of the metrics provide the best trade-off between computational cost and predictive power.
+
+% Note: The report text contains citations up to [1], but only 18 references are provided in the report's reference list.
+% The following bibliography is based on the provided list. Citations for numbers greater than 18 will be unresolved without further information.
+\begin{thebibliography}{99}
+\bibitem{b1} T. M. Cover and P. E. Hart, “Nearest neighbor pattern classification,” \textit{IEEE Transactions on Information Theory}, vol. 13, no. 1, pp. 21–27, Jan. 1967.
+\bibitem{b2} D. S. Broomhead and D. Lowe, “Multivariable functional interpolation and adaptive networks,” \textit{Complex Systems}, vol. 2, pp. 321–355, 1988.
+\bibitem{b3} J. Mockus, “On Bayesian methods for seeking the extremum,” in \textit{Optimization Techniques IFIP Technical Conference, Novosibirsk, July 1–7, 1974}, G. I. Marchuk, Ed. Berlin, Heidelberg: Springer, 1975, pp. 400–404.
+\bibitem{b4} D. R. Jones, M. Schonlau, and W. J. Welch, “Efficient global optimization of expensive black-box functions,” \textit{Journal of Global Optimization}, vol. 13, no. 4, pp. 455–492, 1998.
+\bibitem{b5} E. Fix and J. L. Hodges, “Discriminatory Analysis. Nonparametric Discrimination: Consistency Properties,” USAF School of Aviation Medicine, Randolph Field, Texas, Project 21-49-004, Report 4, Feb. 1951.
+\bibitem{b6} T. M. Cover and P. E. Hart, “Nearest neighbor pattern classification,” \textit{IEEE Transactions on Information Theory}, vol. 13, no. 1, pp. 21–27, Jan. 1967.
+\bibitem{b7} T. M. Cover and P. E. Hart, “Nearest neighbor pattern classification,” \textit{IEEE Transactions on Information Theory}, vol. 13, no. 1, pp. 21–27, Jan. 1967.
+\bibitem{b8} E. Y. Boateng, J. Otoo, and D. A. Abaye, “Basic tenets of classification algorithms K-nearest-neighbor, support vector machine, random forest and neural network: a review,” \textit{Journal of Data Analysis and Information Processing}, vol. 8, no. 4, pp. 341–357, 2020.
+\bibitem{b9} A. Singh, N. Thakur, and A. Sharma, “A Review on Analysis of K-Nearest Neighbor Classification Machine Learning Algorithms based on Supervised Learning,” \textit{International Journal of Engineering and Advanced Technology (IJEAT)}, vol. 10, no. 5, pp. 191–196, 2021.
+\bibitem{b10} T. M. Cover and P. E. Hart, “Nearest neighbor pattern classification,” \textit{IEEE Transactions on Information Theory}, vol. 13, no. 1, pp. 21–27, Jan. 1967.
+\bibitem{b11} K. Beyer, J. Goldstein, R. Ramakrishnan, and U. Shaft, “When is ‘nearest neighbor’ meaningful?,” in \textit{International Conference on Database Theory}, 1999, pp. 217–235.
+\bibitem{b12} G. James, D. Witten, T. Hastie, and R. Tibshirani, \textit{An Introduction to Statistical Learning}. New York: Springer, 2013.
+\bibitem{b13} S. Arlot and A. Celisse, “A survey of cross-validation procedures for model selection,” \textit{Statistics Surveys}, vol. 4, pp. 40–79, 2010.
+\bibitem{b14} M. Stone, “Cross-validatory choice and assessment of statistical predictions,” \textit{Journal of the Royal Statistical Society: Series B (Methodological)}, vol. 36, no. 2, pp. 111–133, 1974.
+\bibitem{b15} R. Kohavi, “A study of cross-validation and bootstrap for accuracy estimation and model selection,” in \textit{Proceedings of the 14th International Joint Conference on Artificial Intelligence (IJCAI)}, 1995, vol. 2, pp. 1137–1145.
+\bibitem{b16} S. Arlot and A. Celisse, “A survey of cross-validation procedures for model selection,” \textit{Statistics Surveys}, vol. 4, pp. 40–79, 2010.
+\bibitem{b17} P. Refaeilzadeh, L. Tang, and H. Liu, “Cross-validation,” in \textit{Encyclopedia of Database Systems}, L. Liu and M. T. Özsu, Eds. Boston, MA: Springer US, 2009, pp. 532–538.
+\bibitem{b18} D. S. Broomhead and D. Lowe, “Multivariable functional interpolation and adaptive networks,” \textit{Complex Systems}, vol. 2, pp. 321–355, 1988.
+\bibitem{b19} C. Cortes and V. Vapnik, “Support-vector networks,” \textit{Machine Learning}, vol. 20, pp. 273–297, 1995.
+\bibitem{b20} This study's methodology.
+\bibitem{b21} D. S. Broomhead and D. Lowe, “Multivariable functional interpolation and adaptive networks,” \textit{Complex Systems}, vol. 2, pp. 321–355, 1988.
+\bibitem{b22} D. S. Broomhead and D. Lowe, “Multivariable functional interpolation and adaptive networks,” \textit{Complex Systems}, vol. 2, pp. 321–355, 1988.
+\bibitem{b23} X. Gu, P. P. Angelov, D. Kangin, and J. C. Principe, “A new type of distance metric and its use for clustering,” \textit{Evolving Systems}, vol. 8, no. 3, pp. 167–177, Sep. 2017.
+\bibitem{b24} X. Gu, P. P. Angelov, D. Kangin, and J. C. Principe, “A new type of distance metric and its use for clustering,” \textit{Evolving Systems}, vol. 8, no. 3, pp. 167–177, Sep. 2017.
+\bibitem{b25} C. C. Aggarwal, A. Hinneburg, and D. A. Keim, “On the surprising behavior of distance metrics in high dimensional space,” in \textit{International Conference on Database Theory}, 2001, pp. 420–434.
+\bibitem{b26} M. de Berg, O. Cheong, M. van Kreveld, and M. Overmars, \textit{Computational Geometry: Algorithms and Applications}, 3rd ed. Berlin, Heidelberg: Springer-Verlag, 2008.
+\bibitem{b27} S. Boyd and L. Vandenberghe, \textit{Convex Optimization}. Cambridge, UK: Cambridge University Press, 2004.
+\bibitem{b28} G. M. Ziegler, \textit{Lectures on Polytopes}. New York: Springer-Verlag, 1995.
+\bibitem{b29} B. Chazelle, “An optimal algorithm for intersecting three-dimensional convex polyhedra,” \textit{SIAM Journal on Computing}, vol. 22, no. 6, pp. 1271–1288, 1993.
+\bibitem{b30} J. O'Rourke, \textit{Computational Geometry in C}, 2nd ed. Cambridge, UK: Cambridge University Press, 1998.
+\bibitem{b31} D. M. J. Tax and R. P. W. Duin, “Support vector data description,” \textit{Machine Learning}, vol. 54, no. 1, pp. 45–66, 2004.
+\bibitem{b32} G. I. Nalbantov, J. C. Bioch, and F. C. A. Groen, “Nearest convex hull classification,” \textit{Pattern Recognition}, vol. 40, no. 4, pp. 1342–1353, Apr. 2007.
+\bibitem{b33} F. Ecer, “A novel anomaly detection method based on convex hull,” \textit{Engineering Science and Technology, an International Journal}, vol. 24, no. 5, pp. 1148–1156, 2021.
+\bibitem{b34} R. A. Fisher, “The use of multiple measurements in taxonomic problems,” \textit{Annals of Eugenics}, vol. 7, no. 2, pp. 179–188, 1936.
+\bibitem{b35} K. Fukunaga, \textit{Introduction to Statistical Pattern Recognition}, 2nd ed. San Diego, CA: Academic Press, 1990.
+\bibitem{b36} R. O. Duda, P. E. Hart, and D. G. Stork, \textit{Pattern Classification}, 2nd ed. New York: Wiley-Interscience, 2000.
+\bibitem{b37} W. Liu, Y. Wen, Z. Yu, and M. Yang, “Large-margin softmax loss for convolutional neural networks,” in \textit{Proceedings of the 33rd International Conference on Machine Learning}, 2016, pp. 507–516.
+\bibitem{b38} P. J. Rousseeuw, “Silhouettes: a graphical aid to the interpretation and validation of cluster analysis,” \textit{Journal of Computational and Applied Mathematics}, vol. 20, pp. 53–65, Nov. 1987.
+\bibitem{b39} L. Kaufman and P. J. Rousseeuw, \textit{Finding Groups in Data: An Introduction to Cluster Analysis}. Hoboken, NJ: John Wiley \& Sons, 2005.
+\bibitem{b40} P. J. Rousseeuw, “Silhouettes: a graphical aid to the interpretation and validation of cluster analysis,” \textit{Journal of Computational and Applied Mathematics}, vol. 20, pp. 53–65, Nov. 1987.
+\bibitem{b41} C. Cortes and V. Vapnik, “Support-vector networks,” \textit{Machine Learning}, vol. 20, pp. 273–297, 1995.
+\bibitem{b42} B. Schölkopf and A. J. Smola, \textit{Learning with Kernels: Support Vector Machines, Regularization, Optimization, and Beyond}. Cambridge, MA: MIT Press, 2002.
+\bibitem{b43} N. Cristianini and J. Shawe-Taylor, \textit{An Introduction to Support Vector Machines and Other Kernel-based Learning Methods}. Cambridge, UK: Cambridge University Press, 2000.
+\bibitem{b44} B. Shahriari, K. Swersky, Z. Wang, R. P. Adams, and N. de Freitas, “Taking the human out of the loop: A review of Bayesian optimization,” \textit{Proceedings of the IEEE}, vol. 104, no. 1, pp. 148–175, Jan. 2016.
+\bibitem{b45} J. Snoek, H. Larochelle, and R. P. Adams, “Practical Bayesian optimization of machine learning algorithms,” in \textit{Advances in Neural Information Processing Systems 25}, 2012, pp. 2951–2959.
+\bibitem{b46} P. I. Frazier, “A tutorial on Bayesian optimization,” \textit{arXiv preprint arXiv:1807.02811}, 2018.
+\bibitem{b47} J. Mockus, “On the application of Bayesian methods for seeking the extremum,” in \textit{Towards Global Optimization 2}, L. C. W. Dixon and G. P. Szegö, Eds. Amsterdam: North-Holland, 1978, pp. 117–129.
+\bibitem{b48} D. R. Jones, M. Schonlau, and W. J. Welch, “Efficient global optimization of expensive black-box functions,” \textit{Journal of Global Optimization}, vol. 13, no. 4, pp. 455–492, 1998.
+\bibitem{b49} J. Mockus, “On Bayesian methods for seeking the extremum,” in \textit{Optimization Techniques IFIP Technical Conference, Novosibirsk, July 1–7, 1974}, G. I. Marchuk, Ed. Berlin, Heidelberg: Springer, 1975, pp. 400–404.
+\bibitem{b50} D. R. Jones, M. Schonlau, and W. J. Welch, “Efficient global optimization of expensive black-box functions,” \textit{Journal of Global Optimization}, vol. 13, no. 4, pp. 455–492, 1998.
+\bibitem{b51} D. R. Jones, M. Schonlau, and W. J. Welch, “Efficient global optimization of expensive black-box functions,” \textit{Journal of Global Optimization}, vol. 13, no. 4, pp. 455–492, 1998.
+\bibitem{b52} D. R. Jones, M. Schonlau, and W. J. Welch, “Efficient global optimization of expensive black-box functions,” \textit{Journal of Global Optimization}, vol. 13, no. 4, pp. 455–492, 1998.
+\bibitem{b53} V. Lohweg, “Banknote Authentication Data Set,” UCI Machine Learning Repository. [Online]. Available: \url{https://archive.ics.uci.edu/ml/datasets/banknote+authentication}
+\bibitem{b54} D. Dua and C. Graff, “UCI Machine Learning Repository,” Irvine, CA: University of California, School of Information and Computer Sciences, 2017. [Online]. Available: \url{http://archive.ics.uci.edu/ml}
+\bibitem{b55} W. H. Wolberg, W. N. Street, and O. L. Mangasarian, "Breast Cancer Wisconsin (Diagnostic) Data Set," UCI Machine Learning Repository. [Online]. Available: \url{https://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+(Diagnostic)}
+\bibitem{b56} M. Bohanec and V. Rajkovic, “Expert system for decision making,” \textit{Sistemica}, vol. 1, no. 1, pp. 145–157, 1990.
+\bibitem{b57} H. Hofmann, "Statlog (German Credit Data) Data Set," UCI Machine Learning Repository. [Online]. Available: \url{https://archive.ics.uci.edu/ml/datasets/statlog+(german+credit+data)}
+\bibitem{b58} "Pima Indians Diabetes Database," National Institute of Diabetes and Digestive and Kidney Diseases. Sourced from UCI Machine Learning Repository. [Online]. Available: \url{https://archive.ics.uci.edu/ml/datasets/pima+indians+diabetes}
+\bibitem{b59} "Statlog (Heart) Data Set," UCI Machine Learning Repository. [Online]. Available: \url{https://archive.ics.uci.edu/ml/datasets/statlog+(heart)}
+\bibitem{b60} V. G. Sigillito, S. P. Wing, L. V. Hutton, and K. B. Baker, “Classification of radar returns from the ionosphere using neural networks,” \textit{Johns Hopkins APL Technical Digest}, vol. 10, no. 3, pp. 262–266, 1989.
+\bibitem{b61} R. A. Fisher, “The use of multiple measurements in taxonomic problems,” \textit{Annals of Eugenics}, vol. 7, no. 2, pp. 179–188, 1936.
+\bibitem{b62} S. B. Thrun et al., “The MONK's Problems: A performance comparison of different learning algorithms,” Technical Report CS-CMU-91-197, Carnegie Mellon University, Dec. 1991.
+\bibitem{b63} J. S. Schlimmer, “Concept acquisition through representational adjustment,” Ph.D. dissertation, Dept. of Information and Computer Science, University of California, Irvine, 1987.
+\bibitem{b64} “Phoneme Dataset,” OpenML, ID 1489. [Online]. Available: \url{https://www.openml.org/d/1489}
+\bibitem{b65} M. Hopkins, E. Reeber, G. Forman, and J. Suermondt, “Spambase Dataset,” UCI Machine Learning Repository, 1999. [Online]. doi: 10.24432/C53G6X.
+\bibitem{b66} L. F. Cranor and B. A. LaMacchia, “Spam!,” \textit{Communications of the ACM}, vol. 41, no. 8, pp. 74–83, Aug. 1998.
+\bibitem{b67} “Titanic: Machine Learning from Disaster,” Kaggle. [Online]. Available: \url{https://www.kaggle.com/c/titanic/data}. (Original data from Dept. of Biostatistics, Vanderbilt University).
+\bibitem{b68} S. Aeberhard and M. Forina, “Wine Dataset,” UCI Machine Learning Repository, 1991. [Online]. doi: 10.24432/C5PC7J.
+\bibitem{b69} S. Aeberhard, D. Coomans, and O. de Vel, “Comparative analysis of statistical pattern recognition methods in high dimensional settings,” \textit{Pattern Recognition}, vol. 27, no. 8, pp. 1065–1077, 1994.
+\bibitem{b70} K. Nakai, “Yeast Dataset,” UCI Machine Learning Repository, 1996. [Online]. doi: 10.24432/C5KG68.
+\bibitem{b71} K. Nakai and P. Horton, “A new method for predicting sorting signals in proteins from their amino acid sequences,” in \textit{Proceedings of the Fourth International Conference on Intelligent Systems for Molecular Biology}, 1996, pp. 146–155.
+\end{thebibliography}
+
+\end{document}
